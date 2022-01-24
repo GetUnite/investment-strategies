@@ -1,22 +1,24 @@
 import * as dotenv from "dotenv";
 
-import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import 'hardhat-contract-sizer'
+import './tasks/tasks'
+import { url } from "inspector";
 
 dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.4",
+    version: "0.8.11",
     settings: {
       optimizer: {
         enabled: true,
-        runs: 999999999,
+        runs: 1000000,
       },
     },
   },
@@ -26,11 +28,19 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
       forking: {
-        url: process.env.POLYGON_FORKING_URL as string,
-      },
+        enabled: process.env.FORKING_ENABLED == "true",
+        url: process.env.FORKING_URL as string
+      }
     },
     rinkeby: {
       url: process.env.RINKEBY_URL,
+      gasPrice: "auto",
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
+    goerli: {
+      url: process.env.GOERLI_URL,
       gasPrice: "auto",
       accounts: {
         mnemonic: process.env.MNEMONIC,
@@ -42,10 +52,17 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
+    },
+    matictestnet: {
+      url: process.env.POLYGON_TESTNET_URL,
+      gasPrice: "auto",
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
     }
   },
   gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
+    enabled: process.env.REPORT_GAS == "true",
     currency: "USD",
   },
   etherscan: {
@@ -57,7 +74,7 @@ const config: HardhatUserConfig = {
   contractSizer: {
     alphaSort: false,
     disambiguatePaths: false,
-    runOnCompile: false,
+    runOnCompile: process.env.CONTRACT_SIZER == "true",
     strict: false,
   }
 };
