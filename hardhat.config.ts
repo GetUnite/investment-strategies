@@ -8,7 +8,6 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import 'hardhat-contract-sizer'
 import './tasks/tasks'
-import { url } from "inspector";
 
 dotenv.config();
 
