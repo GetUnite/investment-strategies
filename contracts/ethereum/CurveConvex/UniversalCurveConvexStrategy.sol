@@ -24,6 +24,7 @@ contract UniversalCurveConvexStrategy is AccessControl {
         uint256[4] calldata fourPoolTokensAmount,
         uint256[] calldata dynamicTokensAmount,
         IERC20[] calldata tokens,
+        uint8 poolSize,
         address curvePool
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint8 length = uint8(tokens.length);
@@ -37,19 +38,19 @@ contract UniversalCurveConvexStrategy is AccessControl {
         }
 
         bytes memory curveCall;
-        if (length == 2) {
+        if (poolSize == 2) {
             curveCall = abi.encodeWithSignature(
                 "add_liquidity(uint256[2],uint256)",
                 twoPoolTokensAmount,
                 0
             );
-        } else if (length == 3) {
+        } else if (poolSize == 3) {
             curveCall = abi.encodeWithSignature(
                 "add_liquidity(uint256[3],uint256)",
                 threePoolTokensAmount,
                 0
             );
-        } else if (length == 4) {
+        } else if (poolSize == 4) {
             curveCall = abi.encodeWithSignature(
                 "add_liquidity(uint256[4],uint256)",
                 fourPoolTokensAmount,

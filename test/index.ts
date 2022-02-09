@@ -88,8 +88,9 @@ describe("CurveConvexStrategy", function () {
         [0, 0],
         [amount, 0, 0],
         [0, 0, 0, 0],
-        [amount, 0, 0],
-        [dai.address, usdc.address, usdt.address],
+        [amount],
+        [dai.address],
+        3,
         "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"
       ])
     )
@@ -103,8 +104,9 @@ describe("CurveConvexStrategy", function () {
         [0, crvLpAmount],
         [0, 0, 0],
         [0, 0, 0, 0],
-        [0, crvLpAmount],
-        [frax.address, curve3CrvLp.address],
+        [crvLpAmount],
+        [curve3CrvLp.address],
+        2,
         "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"
       ])
     )
