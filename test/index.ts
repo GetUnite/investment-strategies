@@ -5,6 +5,8 @@ import { ethers } from "hardhat";
 import { before } from "mocha";
 import { ICvxBaseRewardPool, IERC20, PseudoMultisigWallet, PseudoMultisigWallet__factory, UniversalCurveConvexStrategy, UniversalCurveConvexStrategy__factory } from "../typechain";
 
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000"
+
 describe("CurveConvexStrategy", function () {
   let strategy: UniversalCurveConvexStrategy;
   let multisig: PseudoMultisigWallet;
@@ -85,11 +87,8 @@ describe("CurveConvexStrategy", function () {
     await multisig.executeCall(
       strategy.address,
       strategy.interface.encodeFunctionData("deployToCurve", [
-        [0, 0],
-        [amount, 0, 0],
-        [0, 0, 0, 0],
-        [amount],
-        [dai.address],
+        [amount, 0, 0, 0],
+        [dai.address, ZERO_ADDR, ZERO_ADDR, ZERO_ADDR],
         3,
         "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"
       ])
@@ -101,11 +100,8 @@ describe("CurveConvexStrategy", function () {
     await multisig.executeCall(
       strategy.address,
       strategy.interface.encodeFunctionData("deployToCurve", [
-        [0, crvLpAmount],
-        [0, 0, 0],
-        [0, 0, 0, 0],
-        [crvLpAmount],
-        [curve3CrvLp.address],
+        [0, crvLpAmount, 0, 0],
+        [ZERO_ADDR, curve3CrvLp.address, ZERO_ADDR, ZERO_ADDR],
         2,
         "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B"
       ])

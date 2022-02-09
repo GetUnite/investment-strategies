@@ -19,20 +19,16 @@ contract UniversalCurveConvexStrategy is AccessControl {
     }
 
     function deployToCurve(
-        uint256[2] calldata twoPoolTokensAmount,
-        uint256[3] calldata threePoolTokensAmount,
         uint256[4] calldata fourPoolTokensAmount,
-        uint256[] calldata dynamicTokensAmount,
         IERC20[] calldata tokens,
         uint8 poolSize,
         address curvePool
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint8 length = uint8(tokens.length);
-        for (uint8 index = 0; index < length; index++) {
-            if (dynamicTokensAmount[index] > 0) {
+        for (uint8 index = 0; index < poolSize; index++) {
+            if (fourPoolTokensAmount[index] > 0) {
                 tokens[index].safeIncreaseAllowance(
                     curvePool,
-                    dynamicTokensAmount[index]
+                    fourPoolTokensAmount[index]
                 );
             }
         }
@@ -41,23 +37,27 @@ contract UniversalCurveConvexStrategy is AccessControl {
         if (poolSize == 2) {
             curveCall = abi.encodeWithSignature(
                 "add_liquidity(uint256[2],uint256)",
-                twoPoolTokensAmount,
+                uint256[2]([fourPoolTokensAmount[0], fourPoolTokensAmount[1]]),
                 0
             );
         } else if (poolSize == 3) {
             curveCall = abi.encodeWithSignature(
                 "add_liquidity(uint256[3],uint256)",
-                threePoolTokensAmount,
+                uint256[3](
+                    [
+                        fourPoolTokensAmount[0],
+                        fourPoolTokensAmount[1],
+                        fourPoolTokensAmount[2]
+                    ]
+                ),
                 0
             );
-        } else if (poolSize == 4) {
+        } else {
             curveCall = abi.encodeWithSignature(
                 "add_liquidity(uint256[4],uint256)",
                 fourPoolTokensAmount,
                 0
             );
-        } else {
-            revert("Strategy: wrong tokens length");
         }
 
         curvePool.functionCall(curveCall);
