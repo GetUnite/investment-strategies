@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
+import "hardhat/console.sol";
 
 import "./interfaces/ICvxBooster.sol";
 import "./interfaces/ICvxBaseRewardPool.sol";
@@ -20,10 +21,11 @@ contract UniversalCurveConvexStrategy is AccessControl {
 
     function deployToCurve(
         uint256[4] calldata fourPoolTokensAmount,
-        IERC20[] calldata tokens,
+        IERC20[4] calldata tokens,
         uint8 poolSize,
         address curvePool
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+
         for (uint8 index = 0; index < poolSize; index++) {
             if (fourPoolTokensAmount[index] > 0) {
                 tokens[index].safeIncreaseAllowance(
@@ -64,11 +66,12 @@ contract UniversalCurveConvexStrategy is AccessControl {
     }
 
     function deployToConvex(
-        ICvxBooster cvxBooster,
-        uint256 poolId,
-        uint256 lpAmount
+        address cvxBoosterAddress,
+        uint256 poolId
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        ICvxBooster cvxBooster = ICvxBooster(cvxBoosterAddress);
         (address token, , , , , ) = cvxBooster.poolInfo(poolId);
+        uint256 lpAmount = IERC20(token).balanceOf(address(this));
         IERC20(token).safeIncreaseAllowance(address(cvxBooster), lpAmount);
         cvxBooster.deposit(poolId, lpAmount, true);
     }

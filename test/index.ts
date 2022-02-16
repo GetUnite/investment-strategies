@@ -109,14 +109,12 @@ describe("CurveConvexStrategy", function () {
     await showTokenSummary();
 
 
-    const lpAmount = await curveFraxLp.balanceOf(strategy.address);
     console.log("Putting LPs into Convex...");
     await multisig.executeCall(
       strategy.address,
       strategy.interface.encodeFunctionData("deployToConvex", [
         "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
-        32,
-        lpAmount
+        32
       ])
     )
     await showTokenSummary();
