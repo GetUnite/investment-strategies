@@ -268,7 +268,7 @@ describe("VoteExecutor", function () {
       { weight: 20, 
         entryToken: dai.address, 
         curvePool: "0x52EA46506B9CC5Ef470C5bf89f17Dc28bB35D85C",
-        poolToken: usdc.address,
+        poolToken: usdt.address,
         poolSize: 3,
         tokenIndexInCurve: 2,
         convexPoolAddress: "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
