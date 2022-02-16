@@ -145,7 +145,7 @@ contract VoteExecutor is AccessControl {
             IERC20[4] memory arrTokens;
             arrTokens[entry.tokenIndexInCurve] = IERC20(entry.poolToken);
 
-            IERC20(entry.poolToken).safeTransfer(strategyDeployer, amount / poolDecimalsMult);
+            IERC20(entry.poolToken).safeTransfer(strategyDeployer, amount);
 
             console.log("entering curve pool");
             console.log(entry.curvePool);
