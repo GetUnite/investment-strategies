@@ -8,6 +8,7 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import 'hardhat-contract-sizer'
 import './tasks/tasks'
+import './tasks/getPoolId'
 
 dotenv.config();
 
@@ -38,6 +39,13 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
     },
+    mainnet: {
+      url: process.env.MAINNET_URL,
+      gasPrice: "auto",
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
     goerli: {
       url: process.env.GOERLI_URL,
       gasPrice: "auto",
@@ -58,7 +66,14 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
-    }
+    },
+    // devnet: {
+    //   url: process.env.POLYGON_TESTNET_URL,
+    //   gasPrice: "auto",
+    //   accounts: {
+    //     mnemonic: process.env.MNEMONIC,
+    //   },
+    // }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS == "true",
