@@ -7,8 +7,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import 'hardhat-contract-sizer'
-import './tasks/tasks'
-import './tasks/getPoolId'
+import "./tasks"
 
 dotenv.config();
 
@@ -67,13 +66,15 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
     },
-    // devnet: {
-    //   url: process.env.POLYGON_TESTNET_URL,
-    //   gasPrice: "auto",
-    //   accounts: {
-    //     mnemonic: process.env.MNEMONIC,
-    //   },
-    // }
+    devnet: {
+      url: process.env.DEVNET,
+      //gasPrice: "auto",
+      gasPrice: 78351630745,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+      timeout: 400000
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS == "true",

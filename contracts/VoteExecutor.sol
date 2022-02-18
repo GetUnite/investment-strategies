@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
-import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -32,88 +31,70 @@ contract VoteExecutor is AccessControl {
     address public strategyDeployer;
     address public exchangeAddress;
 
-    uint32 slippage = 2;
+    uint32 public slippage = 2;
 
-    constructor(address _newAdmin)
+    constructor(address _newAdmin, address _strategy, address _exchange, address[] memory _startEntryTokens)
     {
+
+        strategyDeployer = _strategy;
+        exchangeAddress = _exchange;
+
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        for(uint256 i = 0; i < _startEntryTokens.length; i++){
+            changeEntryTokenStatus(_startEntryTokens[i], true);
+        }
     }
 
     function execute(Entry[] memory _entries) external onlyRole(DEFAULT_ADMIN_ROLE){
         uint8 totalWeight;
-        uint256 entriesNumber = _entries.length;
-        for(uint256 i = 0; i < entriesNumber; i++){
+        for(uint256 i = 0; i < _entries.length; i++){
             totalWeight += _entries[i].weight;
-            require(entryTokens.contains(_entries[i].entryToken), "There is not such entry token");
+            require(entryTokens.contains(_entries[i].entryToken), "There is no such entry token");
         }
-        require(totalWeight <= 100, "VoteExecutor: total weight more then 100");
+        require(totalWeight <= 100, "Total weight more then 100");
 
         uint256 totalBalance = getTotalBalance();
-        uint256 amount;
 
-        for(uint256 i = 0; i < entriesNumber; i++){
+        for(uint256 i = 0; i < _entries.length; i++){
 
             Entry memory entry = _entries[i];
 
-            amount = entry.weight * totalBalance / 100;
+            uint256 amount = entry.weight * totalBalance / 100;
 
             uint256 entryDecimalsMult = 10**(18 - ERC20(entry.entryToken).decimals());
             uint256 poolDecimalsMult = 10**(18 - ERC20(entry.poolToken).decimals());
 
             uint256 actualAmount = IERC20(entry.entryToken).balanceOf(address(this)) * entryDecimalsMult;
 
-            console.log("strategy deployment starts");
-            console.log("pool token");
-            console.log(ERC20(entry.poolToken).name());
-            console.log("entry token");
-            console.log(ERC20(entry.entryToken).name());
-            console.log("amount of entry token need");
-            console.log(amount);
-            console.log("amount of entry have");
-            console.log(actualAmount);
-
             if(actualAmount < amount){
                 uint256 amountLeft = amount - actualAmount;
 
-                //might be some errors
                 uint256 maxLoop = entryTokens.length();
                 while(amountLeft > 0 && maxLoop != 0){
-                    (address helpToken, uint256 helpAmount) = findBiggest(entry.entryToken);
                     maxLoop--;
+                    (address helpToken, uint256 helpAmount) = findBiggest(entry.entryToken);
                     if(amountLeft <= helpAmount){
 
-                        uint256 exchangeAmount = amountLeft / 10**(18 - ERC20(helpToken).decimals());
+                        uint256 exchangeAmountIn = amountLeft / 10**(18 - ERC20(helpToken).decimals());
+                        uint256 exchangeAmountOut = amountLeft / entryDecimalsMult;
 
-                        console.log("1");
-                        console.log("exchanging");
-                        console.log(exchangeAmount);
-                        console.log(ERC20(helpToken).name());
-                        console.log("for");
-                        console.log(ERC20(entry.entryToken).name());
-
-                        actualAmount += exchange(
+                        actualAmount += IExchange(exchangeAddress).exchange(
                             helpToken, 
                             entry.entryToken, 
-                            exchangeAmount,
-                            exchangeAmount * (100 - slippage) / 100
+                            exchangeAmountIn,
+                            exchangeAmountOut * (100 - slippage) / 100
                         ) * entryDecimalsMult;
                         amountLeft = 0;
                     }
                     else{
-                        uint256 exchangeAmount = helpAmount / 10**(18 - ERC20(helpToken).decimals());
+                        uint256 exchangeAmountIn = helpAmount / 10**(18 - ERC20(helpToken).decimals());
+                        uint256 exchangeAmountOut = helpAmount / entryDecimalsMult;
 
-                        console.log("2");
-                        console.log("exchanging");
-                        console.log(exchangeAmount);
-                        console.log(ERC20(helpToken).name());
-                        console.log("for");
-                        console.log(ERC20(entry.entryToken).name());
-
-                        actualAmount += exchange(
+                        actualAmount += IExchange(exchangeAddress).exchange(
                             helpToken, 
                             entry.entryToken, 
-                            exchangeAmount,
-                            exchangeAmount * (100 - slippage) / 100
+                            exchangeAmountIn,
+                            exchangeAmountOut * (100 - slippage) / 100
                         ) * entryDecimalsMult;
                         amountLeft -= helpAmount;
                     }
@@ -122,19 +103,15 @@ contract VoteExecutor is AccessControl {
             }
             if(entry.entryToken != entry.poolToken){
 
-                console.log("3");
-                console.log("exchanging");
-                console.log(amount / entryDecimalsMult);
-                console.log(ERC20(entry.entryToken).name());
-                console.log("for");
-                console.log(ERC20(entry.poolToken).name());
-
-                amount = exchange(
+                amount = IExchange(exchangeAddress).exchange(
                     entry.entryToken, 
                     entry.poolToken, 
                     amount / entryDecimalsMult,
                     0
                 );
+                if(!entryTokens.contains(entry.poolToken)){
+                    IERC20(entry.poolToken).safeIncreaseAllowance(strategyDeployer, amount);
+                }
             }
             else{
                 amount = amount / poolDecimalsMult;
@@ -147,13 +124,6 @@ contract VoteExecutor is AccessControl {
 
             IERC20(entry.poolToken).safeTransfer(strategyDeployer, amount);
 
-            console.log("entering curve pool");
-            console.log(entry.curvePool);
-            console.log("with coin");
-            console.log(entry.poolToken);
-            console.log("amount");
-            console.log(arrAmounts[entry.tokenIndexInCurve]);
-
             UniversalCurveConvexStrategy(strategyDeployer).deployToCurve(
                 arrAmounts,
                 arrTokens,
@@ -162,11 +132,6 @@ contract VoteExecutor is AccessControl {
             );
 
             if(entry.convexPoolAddress != address(0)){
-
-                console.log("enteting convex pool");
-                console.log(entry.convexPoolAddress);
-                console.log("pool id");
-                console.log(entry.convexPoold);
                 
                 UniversalCurveConvexStrategy(strategyDeployer).deployToConvex(
                     entry.convexPoolAddress,
@@ -193,7 +158,7 @@ contract VoteExecutor is AccessControl {
     function changeEntryTokenStatus(
         address _tokenAddress,
         bool _status
-    ) external onlyRole(DEFAULT_ADMIN_ROLE){
+    ) public onlyRole(DEFAULT_ADMIN_ROLE){
         if(_status){
             entryTokens.add(_tokenAddress);
             IERC20(_tokenAddress).safeApprove(exchangeAddress, type(uint256).max);
@@ -237,22 +202,22 @@ contract VoteExecutor is AccessControl {
             }
         }
     }
+  
+    function removeTokenByAddress(address _address, uint256 _amount)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(_address != address(0), "Invalid token address");
+        IERC20(_address).safeTransfer(msg.sender, _amount);
+    }
 
+}
+
+interface IExchange{
     function exchange(
         address from,
         address to,
         uint256 amountIn,
         uint256 minAmountOut
-    ) public payable returns (uint256){
-        IERC20(from).safeTransfer(exchangeAddress, amountIn);
-
-        uint256 amountOut = amountIn  * 10**(18 - ERC20(from).decimals()) / 10**(18 - ERC20(to).decimals());
-        console.log("exchange return");
-        console.log(amountOut * 98 / 100);
-        console.log(ERC20(to).name());
-
-        IERC20(to).safeTransferFrom(exchangeAddress, address(this), amountOut * 98 / 100);
-        return amountOut * 98 / 100;
-    }
-
+    ) external payable returns (uint256);
 }
