@@ -16,26 +16,46 @@ contract VoteExecutor is AccessControl {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct Entry{
+        // Percentage of the total contract balance
+        // that goes to the exact strategy
         uint8 weight;
+        // Preferred token for which most exchanges will be made
         address entryToken;
+        // Address of the pool on curve
         address curvePool;
+        // Token with which we enter the pool
         address poolToken;
+        // How many tokens pool contains
         uint8 poolSize;
+        // PoolToken index in pool
         uint8 tokenIndexInCurve;
+        // Address of the pool on convex
+        // zero address if not exist
         address convexPoolAddress;
+        // special pool id on convex
         uint256 convexPoold;
     }
 
+    // List of supported tokens as entry
     EnumerableSet.AddressSet private entryTokens;
 
+    // Address of the contract that distributes
+    // tokens to the right curve/convex pools 
     address public strategyDeployer;
+    // Address of the contract responsible for each exchange
     address public exchangeAddress;
-
+    // Acceptable slippage for stablecoin exchange 
     uint32 public slippage = 2;
 
+    /**
+     * @dev Contract constructor
+     * @param _newAdmin gnosis address
+     * @param _strategy strategy address
+     * @param _exchange exchange address
+     * @param _startEntryTokens list of supported entry tokens from the beginning
+     */
     constructor(address _newAdmin, address _strategy, address _exchange, address[] memory _startEntryTokens)
     {
-
         strategyDeployer = _strategy;
         exchangeAddress = _exchange;
 
@@ -45,6 +65,11 @@ contract VoteExecutor is AccessControl {
         }
     }
 
+    /**
+     * @dev Main function for executing votes
+     * by providing enries
+     * @param _entries full info about entry
+     */
     function execute(Entry[] memory _entries) external onlyRole(DEFAULT_ADMIN_ROLE){
         uint8 totalWeight;
         for(uint256 i = 0; i < _entries.length; i++){
@@ -61,11 +86,14 @@ contract VoteExecutor is AccessControl {
 
             uint256 amount = entry.weight * totalBalance / 100;
 
+            // Stablecoins have different decimals, so we need to have one base
+            // (18 decimals) for calculation at each step
             uint256 entryDecimalsMult = 10**(18 - ERC20(entry.entryToken).decimals());
             uint256 poolDecimalsMult = 10**(18 - ERC20(entry.poolToken).decimals());
 
             uint256 actualAmount = IERC20(entry.entryToken).balanceOf(address(this)) * entryDecimalsMult;
 
+            // if entry token not enough contact should exchange other stablecoins
             if(actualAmount < amount){
                 uint256 amountLeft = amount - actualAmount;
 
@@ -101,6 +129,7 @@ contract VoteExecutor is AccessControl {
                 }
                 amount = actualAmount;
             }
+            // final exchange before curve if needed
             if(entry.entryToken != entry.poolToken){
 
                 amount = IExchange(exchangeAddress).exchange(
@@ -122,6 +151,7 @@ contract VoteExecutor is AccessControl {
             IERC20[4] memory arrTokens;
             arrTokens[entry.tokenIndexInCurve] = IERC20(entry.poolToken);
 
+            // entering curve with all amount of pool tokens
             IERC20(entry.poolToken).safeTransfer(strategyDeployer, amount);
 
             UniversalCurveConvexStrategy(strategyDeployer).deployToCurve(
@@ -131,6 +161,7 @@ contract VoteExecutor is AccessControl {
                 entry.curvePool
             );
 
+            // if convex pool was provided enteing convex with all lp from curve 
             if(entry.convexPoolAddress != address(0)){
                 
                 UniversalCurveConvexStrategy(strategyDeployer).deployToConvex(
@@ -141,6 +172,10 @@ contract VoteExecutor is AccessControl {
         }
     }
 
+    /**
+     * @dev function for calculating the total balance in USD
+     * @return totalBalance total value of all entry stableoins on contract
+     */
     function getTotalBalance() 
         public 
         view 
@@ -151,10 +186,18 @@ contract VoteExecutor is AccessControl {
         }
     }
 
+    /**
+     * @dev function for getting list of entry tokens
+     */
     function getListEntryTokens() public view returns (address[] memory) {
         return entryTokens.values();
     }
 
+    /**
+     * @dev admin function for changing entry token status
+     * @param _tokenAddress address of token
+     * @param _status will be token acceptable or not
+     */
     function changeEntryTokenStatus(
         address _tokenAddress,
         bool _status
@@ -171,24 +214,43 @@ contract VoteExecutor is AccessControl {
         }
     }
 
+    /**
+     * @dev admin function for changing slippage for exchange
+     * @param _slippage new slippage
+     */
     function changeSlippage(
         uint32 _slippage
     ) external onlyRole(DEFAULT_ADMIN_ROLE){
         slippage = _slippage;
     }
 
+    /**
+     * @dev admin function for adding/changing strategy address
+     * @param _strategyAddress new strategy address
+     */
     function addStrategy(
         address _strategyAddress
     ) external onlyRole(DEFAULT_ADMIN_ROLE){
         strategyDeployer = _strategyAddress;
     }
     
+    /**
+     * @dev admin function for adding/changing exchange address
+     * @param _exchangeAddress new exchange address
+     */
     function addExchange(
         address _exchangeAddress
     ) external onlyRole(DEFAULT_ADMIN_ROLE){
         exchangeAddress = _exchangeAddress;
     }
 
+    /**
+     * @dev function for getting biggest amount in one token
+     * between all stablecoins in contract
+     * @param _entry entryToken for not including it in search
+     * @return token_ address of biggest by funds in contract token 
+     * @return amount_ amount of funds 
+     */
     function findBiggest(address _entry) internal view returns(address token_, uint256 amount_){
         for(uint256 i = 0; i < entryTokens.length(); i++){
 
@@ -203,6 +265,11 @@ contract VoteExecutor is AccessControl {
         }
     }
   
+    /**
+     * @dev admin function for removing funds from contract
+     * @param _address address of the token being removed
+     * @param _amount amount of the token being removed
+     */
     function removeTokenByAddress(address _address, uint256 _amount)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -213,6 +280,7 @@ contract VoteExecutor is AccessControl {
 
 }
 
+// interface for exchange
 interface IExchange{
     function exchange(
         address from,
