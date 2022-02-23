@@ -128,7 +128,7 @@ describe("CurveConvexStrategy", function () {
       strategy.interface.encodeFunctionData("claimAll", [rewardPool.address])
     );
     await showTokenSummary();
-
+    
     const withdrawAmount = await rewardPool.balanceOf(strategy.address);
     console.log("Convex says that strategy deposited", formatUnits(withdrawAmount, 18), "LP");
     console.log("Withdrawing LPs from convex...");

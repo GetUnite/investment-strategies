@@ -30,7 +30,7 @@ task("pool", "gets pool id from convex")
 
         for(let i = 0; i <= 100; i++){
             let returns = await contract.poolInfo(i);
-            if(returns[0] == "0xC25a3A3b969415c80451098fa907EC722572917F"){
+            if(returns[0] == "0xCEAF7747579696A2F0bb206a14210e3c9e6fB269"){
                 console.log("Found!")
                 console.log("Pool id is: " + i)
                 console.log(returns)
