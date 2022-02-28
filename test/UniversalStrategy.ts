@@ -42,7 +42,7 @@ describe("CurveConvexStrategy", function () {
   before(async () => {
     signers = await ethers.getSigners();
 
-    const investorAddress = process.env.IMPERSONATE_ADDRESS as string;
+    const investorAddress = "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0";
 
     await ethers.provider.send(
       'hardhat_impersonateAccount',

@@ -58,11 +58,12 @@ contract VoteExecutor is AccessControl {
     {
         strategyDeployer = _strategy;
         exchangeAddress = _exchange;
-
-        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         for(uint256 i = 0; i < _startEntryTokens.length; i++){
             changeEntryTokenStatus(_startEntryTokens[i], true);
         }
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
     }
 
     /**
@@ -106,7 +107,7 @@ contract VoteExecutor is AccessControl {
                         uint256 exchangeAmountIn = amountLeft / 10**(18 - ERC20(helpToken).decimals());
                         uint256 exchangeAmountOut = amountLeft / entryDecimalsMult;
 
-                        actualAmount += IExchange(exchangeAddress).exchange(
+                          actualAmount += IExchange(exchangeAddress).exchange(
                             helpToken, 
                             entry.entryToken, 
                             exchangeAmountIn,
@@ -118,7 +119,7 @@ contract VoteExecutor is AccessControl {
                         uint256 exchangeAmountIn = helpAmount / 10**(18 - ERC20(helpToken).decimals());
                         uint256 exchangeAmountOut = helpAmount / entryDecimalsMult;
 
-                        actualAmount += IExchange(exchangeAddress).exchange(
+                       actualAmount += IExchange(exchangeAddress).exchange(
                             helpToken, 
                             entry.entryToken, 
                             exchangeAmountIn,
@@ -138,9 +139,6 @@ contract VoteExecutor is AccessControl {
                     amount / entryDecimalsMult,
                     0
                 );
-                if(!entryTokens.contains(entry.poolToken)){
-                    IERC20(entry.poolToken).safeIncreaseAllowance(strategyDeployer, amount);
-                }
             }
             else{
                 amount = amount / poolDecimalsMult;
@@ -163,7 +161,7 @@ contract VoteExecutor is AccessControl {
 
             // if convex pool was provided enteing convex with all lp from curve 
             if(entry.convexPoolAddress != address(0)){
-                
+                  
                 UniversalCurveConvexStrategy(strategyDeployer).deployToConvex(
                     entry.convexPoolAddress,
                     entry.convexPoold
@@ -189,7 +187,7 @@ contract VoteExecutor is AccessControl {
     /**
      * @dev function for getting list of entry tokens
      */
-    function getListEntryTokens() public view returns (address[] memory) {
+    function getListEntryTokens() external view returns (address[] memory) {
         return entryTokens.values();
     }
 
@@ -205,12 +203,10 @@ contract VoteExecutor is AccessControl {
         if(_status){
             entryTokens.add(_tokenAddress);
             IERC20(_tokenAddress).safeApprove(exchangeAddress, type(uint256).max);
-            IERC20(_tokenAddress).safeApprove(strategyDeployer, type(uint256).max);
         }
         else{
             entryTokens.remove(_tokenAddress);
             IERC20(_tokenAddress).safeApprove(exchangeAddress, 0);
-            IERC20(_tokenAddress).safeApprove(strategyDeployer, 0);
         }
     }
 
@@ -264,7 +260,7 @@ contract VoteExecutor is AccessControl {
             }
         }
     }
-  
+
     /**
      * @dev admin function for removing funds from contract
      * @param _address address of the token being removed

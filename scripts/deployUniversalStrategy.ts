@@ -6,7 +6,7 @@ async function main() {
 
   const Strategy = await ethers.getContractFactory("UniversalCurveConvexStrategy");
 
-  const strategy = await Strategy.deploy(addr[0].address);
+  const strategy = await Strategy.deploy("gnosis");
   await strategy.deployed();
 
   console.log("Universal Strategy deployed to:", strategy.address);

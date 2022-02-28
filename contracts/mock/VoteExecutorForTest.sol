@@ -59,11 +59,12 @@ contract VoteExecutorForTest is AccessControl {
     {
         strategyDeployer = _strategy;
         exchangeAddress = _exchange;
-
-        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         for(uint256 i = 0; i < _startEntryTokens.length; i++){
             changeEntryTokenStatus(_startEntryTokens[i], true);
         }
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
     }
 
     /**
@@ -93,7 +94,7 @@ contract VoteExecutorForTest is AccessControl {
             uint256 poolDecimalsMult = 10**(18 - ERC20(entry.poolToken).decimals());
 
             uint256 actualAmount = IERC20(entry.entryToken).balanceOf(address(this)) * entryDecimalsMult;
-            
+
             console.log("strategy deployment starts");
             console.log("pool token");
             console.log(ERC20(entry.poolToken).name());
@@ -104,7 +105,7 @@ contract VoteExecutorForTest is AccessControl {
             console.log("amount of entry have");
             console.log(actualAmount);
             console.log("\n");
-
+            
             // if entry token not enough contact should exchange other stablecoins
             if(actualAmount < amount){
                 uint256 amountLeft = amount - actualAmount;
@@ -176,9 +177,6 @@ contract VoteExecutorForTest is AccessControl {
                     amount / entryDecimalsMult,
                     0
                 );
-                if(!entryTokens.contains(entry.poolToken)){
-                    IERC20(entry.poolToken).safeIncreaseAllowance(strategyDeployer, amount);
-                }
             }
             else{
                 amount = amount / poolDecimalsMult;
@@ -207,12 +205,12 @@ contract VoteExecutorForTest is AccessControl {
 
             // if convex pool was provided enteing convex with all lp from curve 
             if(entry.convexPoolAddress != address(0)){
-  
+                  
                 console.log("enteting convex pool");
                 console.log(entry.convexPoolAddress);
                 console.log("pool id");
                 console.log(entry.convexPoold);
-                console.log("\n");              
+                console.log("\n");     
                 UniversalCurveConvexStrategy(strategyDeployer).deployToConvex(
                     entry.convexPoolAddress,
                     entry.convexPoold
@@ -254,12 +252,10 @@ contract VoteExecutorForTest is AccessControl {
         if(_status){
             entryTokens.add(_tokenAddress);
             IERC20(_tokenAddress).safeApprove(exchangeAddress, type(uint256).max);
-            IERC20(_tokenAddress).safeApprove(strategyDeployer, type(uint256).max);
         }
         else{
             entryTokens.remove(_tokenAddress);
             IERC20(_tokenAddress).safeApprove(exchangeAddress, 0);
-            IERC20(_tokenAddress).safeApprove(strategyDeployer, 0);
         }
     }
 
@@ -322,13 +318,15 @@ contract VoteExecutorForTest is AccessControl {
         IERC20(from).safeTransfer(exchangeAddress, amountIn);
 
         uint256 amountOut = amountIn  * 10**(18 - ERC20(from).decimals()) / 10**(18 - ERC20(to).decimals());
+        console.log("expected min return");
+        console.log(minAmountOut);
         console.log("exchange return");
         console.log(amountOut * 98 / 100);
         console.log(ERC20(to).name());
 
         IERC20(to).safeTransferFrom(exchangeAddress, address(this), amountOut * 98 / 100);
         return amountOut * 98 / 100;
-    }  
+    }    
     /**
      * @dev admin function for removing funds from contract
      * @param _address address of the token being removed
