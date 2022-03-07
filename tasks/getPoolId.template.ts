@@ -21,18 +21,21 @@ task("pool", "gets pool id from convex")
         // The address from the above deployment example
         let contractAddress = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 
+        //Curve pool id
+        let curveLPContractAddress = "0x5a6A4D54456819380173272A5E8E9B9904BdF41B";
+
         // We connect to the Contract using a Provider, so we will only
         // have read-only access to the Contract
         let contract = new ethers.Contract(contractAddress, abi, provider);
 
-        console.log(network);
-
+        console.log("Network: ", network);
+        console.log("Curve LP contract address: ", curveLPContractAddress)
 
         for(let i = 0; i <= 100; i++){
             let returns = await contract.poolInfo(i);
-            if(returns[0] == "0xCEAF7747579696A2F0bb206a14210e3c9e6fB269"){
+            if(returns[0] == curveLPContractAddress){
                 console.log("Found!")
-                console.log("Pool id is: " + i)
+                console.log("Convex Pool id is: " + i)
                 console.log(returns)
                 break;
             }

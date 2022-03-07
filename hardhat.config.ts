@@ -26,10 +26,10 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
-      forking: {
-        enabled: process.env.FORKING_ENABLED == "true",
-        url: process.env.FORKING_URL as string
-      }
+      // forking: {
+      //   enabled: process.env.FORKING_ENABLED == "true",
+      //   url: process.env.FORKING_URL as string
+      // }
     },
     rinkeby: {
       url: process.env.RINKEBY_URL,
@@ -66,15 +66,15 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
     },
-    devnet: {
-      url: process.env.DEVNET,
-      //gasPrice: "auto",
-      gasPrice: 78351630745,
-      accounts: {
-        mnemonic: process.env.MNEMONIC,
-      },
-      timeout: 400000
-    }
+    // devnet: {
+    //   url: process.env.DEVNET,
+    //   //gasPrice: "auto",
+    //   gasPrice: 78351630745,
+    //   accounts: {
+    //     mnemonic: process.env.MNEMONIC,
+    //   },
+    //   timeout: 400000
+    // }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS == "true",
