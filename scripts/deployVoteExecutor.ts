@@ -7,9 +7,9 @@ async function main() {
   const Executor = await ethers.getContractFactory("VoteExecutor");
 
   const executor = await Executor.deploy(
-    "gnosis",   //admin
-    "strategy", //strategy
-    "exchange", //exchange
+    "0x1F020A4943EB57cd3b2213A66b355CB662Ea43C3",   //admin
+    "0xa248Ba96d72005114e6C941f299D315757877c0e", //strategy
+    "0x29c66CF57a03d41Cfe6d9ecB6883aa0E2AbA21Ec", //exchange
     [
     "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",// USDC
     "0x6B175474E89094C44Da98b954EedeAC495271d0F",// DAI
