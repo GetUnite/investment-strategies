@@ -1,11 +1,17 @@
 <div id="top"></div>
 
 <!-- PROJECT SHIELDS -->
-[![Contributors][contributors-shield]][https://github.com/GetAlluo/alluo-strategies/graphs/contributors]
-[![Forks][forks-shield]][https://github.com/GetAlluo/alluo-strategies/network/members]
-[![Stargazers][stars-shield]][https://github.com/GetAlluo/alluo-strategies/stargazers]
-[![Issues][issues-shield]][https://github.com/GetAlluo/alluo-strategies/issues]
-[![Twitter][twitter-shield]][https://twitter.com/GetAlluo]
+<!--
+*** I'm using markdown "reference style" links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
 
 
 
@@ -13,7 +19,7 @@
 <br />
 <div align="center">
   <a href="https://alluo.finance">
-    <img src="https://assets.website-files.com/613b4c4a426c9b2c4d31caaa/6168135b36da4560d493f4d3_Group%20242-p-500.png" alt="Logo" width="80" height="80">
+    <img src="https://assets.website-files.com/613b4c4a426c9b2c4d31caaa/6168135b36da4560d493f4d3_Group%20242-p-500.png" alt="Logo" width="500" height="500">
   </a>
 
   <h3 align="center">Alluo - Strategies</h3>
@@ -208,8 +214,13 @@ Project Link: [https://github.com/GetAlluo/alluo-strategies](https://github.com/
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
+[contributors-url]: https://github.com/GetAlluo/alluo-strategies/graphs/contributors
+
 [forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
+[forks-url]: https://github.com/GetAlluo/alluo-strategies/network/members
+
 [stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
+[stars-url]: https://github.com/GetAlluo/alluo-strategies/stargazers
+
 [issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[issues-url]: https://github.com/GetAlluo/alluo-strategies/issues
