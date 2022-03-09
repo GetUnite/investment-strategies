@@ -8,10 +8,12 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
+[![Discord][discord-shield]][discord-url]
 
 
 
@@ -213,14 +215,17 @@ Project Link: [https://github.com/GetAlluo/alluo-strategies](https://github.com/
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
+[contributors-shield]: https://img.shields.io/github/contributors/GetAlluo/alluo-strategies?style=for-the-badge
 [contributors-url]: https://github.com/GetAlluo/alluo-strategies/graphs/contributors
 
-[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
+[forks-shield]: https://img.shields.io/github/forks/GetAlluo/alluo-strategies?style=for-the-badge
 [forks-url]: https://github.com/GetAlluo/alluo-strategies/network/members
 
-[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
+[stars-shield]: https://img.shields.io/github/stars/GetAlluo/alluo-strategies?style=for-the-badge
 [stars-url]: https://github.com/GetAlluo/alluo-strategies/stargazers
 
-[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
+[issues-shield]: https://img.shields.io/github/issues/GetAlluo/alluo-strategies?style=for-the-badge
 [issues-url]: https://github.com/GetAlluo/alluo-strategies/issues
+
+[discord-shield]: https://img.shields.io/badge/Discord-Join%20us-blue?style=for-the-badge
+[discord-url]: https://discord.gg/tuN3y3Tfe4
