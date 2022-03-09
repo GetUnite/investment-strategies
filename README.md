@@ -19,7 +19,7 @@
 <br />
 <div align="center">
   <a href="https://alluo.finance">
-    <img src="https://assets.website-files.com/613b4c4a426c9b2c4d31caaa/6168135b36da4560d493f4d3_Group%20242-p-500.png" alt="Logo" width="500" height="500">
+    <img src="https://assets.website-files.com/613b4c4a426c9b2c4d31caaa/6168135b36da4560d493f4d3_Group%20242-p-500.png" alt="Logo">
   </a>
 
   <h3 align="center">Alluo - Strategies</h3>
