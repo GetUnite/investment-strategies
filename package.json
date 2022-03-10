@@ -1,5 +1,12 @@
 {
   "name": "alluo-strategies",
+  "main": "dist/index.js",
+  "scripts": {
+    "prepare": "npm run compile",
+    "build": "npx hardhat compile "
+  },
+  "version": "1.0.0",
+  "dependencies": {},
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.3",
     "@nomiclabs/hardhat-etherscan": "^2.1.8",
