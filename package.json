@@ -1,6 +1,5 @@
 {
   "name": "alluo-strategies",
-  "main": "dist/index.js",
   "scripts": {
     "prepare": "npm run compile",
     "build": "npx hardhat compile "
