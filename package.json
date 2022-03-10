@@ -1,9 +1,5 @@
 {
   "name": "alluo-strategies",
-  "scripts": {
-    "prepare": "npm run compile",
-    "build": "npx hardhat compile "
-  },
   "version": "1.0.0",
   "dependencies": {},
   "devDependencies": {
