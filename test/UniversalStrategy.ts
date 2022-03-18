@@ -2,7 +2,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { formatUnits, parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { before } from "mocha";
 import { ICvxBaseRewardPool, IERC20, PseudoMultisigWallet, PseudoMultisigWallet__factory, UniversalCurveConvexStrategy, UniversalCurveConvexStrategy__factory } from "../typechain";
 
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000"
@@ -128,7 +127,7 @@ describe("CurveConvexStrategy", function () {
       strategy.interface.encodeFunctionData("claimAll", [rewardPool.address])
     );
     await showTokenSummary();
-    
+
     const withdrawAmount = await rewardPool.balanceOf(strategy.address);
     console.log("Convex says that strategy deposited", formatUnits(withdrawAmount, 18), "LP");
     console.log("Withdrawing LPs from convex...");
