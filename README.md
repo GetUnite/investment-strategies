@@ -70,6 +70,8 @@ Strategies hold the logic on what to do the funds from the vote executor and how
 
 Strategies have to implement a set of standard functions that are needed by the Protocol to be executed, we are currently working on an Interface for our community.
 
+All the addresses of the contracts deployed to all the networks that are part of the Alluo Protocol are available here: [Protocol Library](https://library.alluo.com/)
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
