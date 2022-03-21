@@ -1,0 +1,38 @@
+import {task} from "hardhat/config";
+import "@nomiclabs/hardhat-waffle";
+import {parseEther} from "@ethersproject/units"
+
+task("entry", "Execute vote from Alluo DAO for liquidity direction")
+    .setAction(async function (taskArgs, hre) {
+        const ZERO_ADDR = "0x0000000000000000000000000000000000000000"
+
+        const network = hre.network.name;
+
+        console.log(network);
+        const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+        const dai = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
+        const frax = "0x853d955aCEf822Db058eb8505911ED77F175b99e"
+        const usdt = "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+        const crv3 = "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490"
+        
+        const [...addr] = await hre.ethers.getSigners();
+
+        const exec = await hre.ethers.getContractAt("VoteExecutor", "0x9EB0a0751cf514262AAF45F4d856f36df56017ae");
+
+        let entries = [
+            { 
+                weight: 0, //Weight in percentage of how much of the total held by the contract should be invested in this vote.
+                entryToken: "", //Stable held by the contract we want to use to enter the Curve pool, best to use the const above for the stables supported
+                curvePool: "", //Address of the curvePool to enter
+                poolToken: "", //Address of the token the pool accepts
+                poolSize: 0, //How many entry tokens are supported by the Curve pool (most use 3CRV and something else, so the size would be 2)
+                tokenIndexInCurve: 0, //Index of the poolToken in the array of supportedTokens (starts from 0)
+                convexPoolAddress:"", //Address of the Convex pool we want to invest the Curve LP into
+                convexPoold:0 //ID of the Convex pool ID, best to use the task getPoolId.ts.
+            }
+        ]
+
+        await exec.connect(addr[0]).execute(entries)
+        
+        console.log('entry task Done!');
+    });
