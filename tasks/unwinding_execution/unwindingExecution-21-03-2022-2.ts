@@ -1,6 +1,5 @@
-import { task } from "hardhat/config";
+import {task} from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import { Unwinder } from "../../typechain";
 
 task("unwind", "Unwind entries from previous vote")
     .setAction(async function (taskArgs, hre) {
@@ -17,26 +16,24 @@ task("unwind", "Unwind entries from previous vote")
     
         const exec = await hre.ethers.getContractAt("Unwinder", "0x0ccC76540E087b2E7567F7BFf80d7EEA0d4F00aC");
 
-        //Unwind the whole d3Pool position as not in this week's vote
+        //Convert all mim reward to usdc so we can compound
         let entries = [
-            { 
-                weight: 45, 
+            {   
+                weight: 17, 
                 entryToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 
-                curvePool: "0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89", 
-                poolToken: "0x853d955aCEf822Db058eb8505911ED77F175b99e",
-                poolSize: 3,
-                tokenIndexInCurve: 0, 
-                convexPoolAddress:"0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
-                convexPoold:58
+                curvePool: "0x5a6A4D54456819380173272A5E8E9B9904BdF41B", 
+                poolToken: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490", 
+                poolSize: 2, 
+                tokenIndexInCurve: 1, 
+                convexPoolAddress: "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
+                convexPoold:40
             }
         ]
 
-        let unwindPercentage = 100
         let outputCoin = usdc
         let receiver = "0x85adEF77325af70AC8922195fB6010ce5641d739"
-        let swapRewards = true
 
-        await exec.unwindAny(entries, unwindPercentage, outputCoin, receiver, swapRewards)
+        await exec.unwindOnlyRewards(entries, outputCoin, receiver)
         
         console.log('Unwinding task Done!');
     });
