@@ -12,8 +12,6 @@ import "./interfaces/ICvxBaseRewardPool.sol";
 import "./interfaces/ICvxBooster.sol";
 import "./interfaces/IEntry.sol";
 
-import "hardhat/console.sol";
-
 contract Unwinder is IEntry, AccessControl {
     using Address for address;
     using EnumerableSet for EnumerableSet.UintSet;
