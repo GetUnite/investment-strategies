@@ -46,7 +46,7 @@ task("entry", "Unwind entries from previous vote")
             "0x85adEF77325af70AC8922195fB6010ce5641d739"
         ]
 
-        await exec.connect(addr[0]).execute(entries, unwindPercentage, outputCoin, receiver)
+        await exec.connect(addr[0]).unwindAny(entries, unwindPercentage, outputCoin, receiver)
         
         console.log('Unwinding task Done!');
     });

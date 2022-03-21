@@ -46,7 +46,7 @@ task("entry", "Unwind entries from previous vote")
             voteExecutor //Should default to voteExecutor as most of the time we want to re-invest
         ]
 
-        await exec.connect(addr[0]).execute(entries, unwindPercentage, outputCoin, receiver)
+        await exec.connect(addr[0]).unwindAny(entries, unwindPercentage, outputCoin, receiver)
         
         console.log('Unwinding task Done!');
     });
