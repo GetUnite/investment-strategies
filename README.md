@@ -27,7 +27,7 @@
   <h3 align="center">Alluo - Strategies</h3>
 
   <p align="center">
-   Strategies used by the Alluo protocle and its community to invest customers funds.
+   Strategies used by the Alluo protocol and its community to invest customers funds.
   </p>
 </div>
 
@@ -66,7 +66,7 @@ This repo contains all the strategies the Alluo protocol has access to to invest
 
 These strategies are mainly built by the Core Contributors, but we welcome anyone to help or new protocols to submit strategies for their own farms.
 
-Strategies hold the logic on what to do the funds from the vote executor and how to interact with the target procotol, this is really the heart of the logic.
+Strategies hold the logic on what to do with the funds from the vote executor and how to interact with the target procotol, this is really the heart of the logic.
 
 Strategies have to implement a set of standard functions that are needed by the Protocol to be executed, we are currently working on an Interface for our community.
 
