@@ -2,7 +2,7 @@ import {task} from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import {parseEther} from "@ethersproject/units"
 
-task("entry", "Unwind entries from previous vote")
+task("unwind", "Unwind entries from previous vote")
     .setAction(async function (taskArgs, hre) {
         const ZERO_ADDR = "0x0000000000000000000000000000000000000000"
 
