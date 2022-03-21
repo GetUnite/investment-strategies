@@ -16,7 +16,7 @@ task("unwind", "Unwind entries from previous vote")
     
         const exec = await hre.ethers.getContractAt("Unwinder", "0x0ccC76540E087b2E7567F7BFf80d7EEA0d4F00aC");
 
-        //Unwind all rewards form Womehold V2 UST so we can compound
+        //Unwind all rewards form Wormhole V2 UST so we can compound
         let entries = [
             { 
                 weight: 38, 
