@@ -32,7 +32,7 @@ task("unwind", "Unwind entries from previous vote")
         ];
 
         let outputCoin = usdc;
-        let unwindPercent = 1;
+        let unwindPercent = 48;
         let receiver = voteExecutor;
         let swapRewards = true;
 
