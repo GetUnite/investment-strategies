@@ -2,7 +2,7 @@ import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import { Unwinder } from "../../typechain";
 
-task("entry", "Execute vote from Alluo DAO for liquidity direction")
+task("voteExecution-21032022to04042022", "Execute vote from Alluo DAO for liquidity direction")
     .setAction(async function (taskArgs, hre) {
         const network = hre.network.name;
         console.log("Network:", network);
@@ -28,7 +28,15 @@ task("entry", "Execute vote from Alluo DAO for liquidity direction")
             }
         ]
 
-        await exec.executeVote(entries);
+        // when we can sort out multisig via tasks this will run
+        //await exec.executeVote(entries);
 
-        console.log('entry task Done!');
+        //for now just outputing the entries ready for copy paste
+        console.log("Entries:", JSON.stringify(entries));
+
+        console.log(`
+----------------------
+| Entry task Done 🚀 |
+----------------------
+        `);
     });
