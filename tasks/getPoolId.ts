@@ -1,7 +1,5 @@
 import {task} from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-
-
 import { Event } from "@ethersproject/contracts";
 
 task("pool", "gets pool id from convex")

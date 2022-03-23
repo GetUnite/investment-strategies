@@ -48,7 +48,15 @@ task("entry", "Execute vote from Alluo DAO for liquidity direction")
             }
         ]
 
-        await exec.executeVote(entries)
+        // when we can sort out multisig via tasks this will run
+        //await exec.executeVote(entries);
 
-        console.log('Entry task Done!');
+        //for now just outputing the entries ready for copy paste
+        console.log("Entries:", JSON.stringify(entries));
+
+        console.log(`
+----------------------
+| Entry task Done 🚀 |
+----------------------
+        `);
     });
