@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { formatUnits, parseEther, parseUnits } from "ethers/lib/utils";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { ICvxBaseRewardPool, IERC20, PseudoMultisigWallet, PseudoMultisigWallet__factory, UniversalCurveConvexStrategy, UniversalCurveConvexStrategy__factory } from "../typechain";
 
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000"
@@ -39,6 +39,19 @@ describe("CurveConvexStrategy", function () {
   }
 
   before(async () => {
+
+    await network.provider.request({
+      method: "hardhat_reset",
+      params: [{
+          forking: {
+              enabled: true,
+              jsonRpcUrl: process.env.MAINNET_FORKING_URL as string,
+              //you can fork from last block by commenting next line
+              blockNumber: 14450115, 
+          },
+      },],
+  });
+
     signers = await ethers.getSigners();
 
     const investorAddress = "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0";

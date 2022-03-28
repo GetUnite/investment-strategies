@@ -7,7 +7,8 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import 'hardhat-contract-sizer'
-import "./tasks"
+import './tasks'
+//import '@openzeppelin/hardhat-upgrades';
 
 dotenv.config();
 
@@ -26,21 +27,16 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
-      forking: {
-        enabled: process.env.FORKING_ENABLED == "true",
-        url: process.env.FORKING_URL as string,
-        blockNumber: 14397303
-      },
     },
-    rinkeby: {
-      url: process.env.RINKEBY_URL,
+    mainnet: {
+      url: process.env.MAINNET_URL,
       gasPrice: "auto",
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
     },
-    mainnet: {
-      url: process.env.MAINNET_URL,
+    rinkeby: {
+      url: process.env.RINKEBY_URL,
       gasPrice: "auto",
       accounts: {
         mnemonic: process.env.MNEMONIC,
@@ -53,30 +49,22 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
     },
-    maticmainnet: {
+    polygon: {
       url: process.env.POLYGON_URL,
       gasPrice: "auto",
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
     },
-    matictestnet: {
-      url: process.env.POLYGON_TESTNET_URL,
+    mumbai: {
+      url: process.env.MUMBAI_URL,
       gasPrice: "auto",
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
-    },
-    // devnet: {
-    //   url: process.env.DEVNET,
-    //   //gasPrice: "auto",
-    //   gasPrice: 78351630745,
-    //   accounts: {
-    //     mnemonic: process.env.MNEMONIC,
-    //   },
-    //   timeout: 400000
-    // }
+    }
   },
+  
   gasReporter: {
     enabled: process.env.REPORT_GAS == "true",
     currency: "USD",
@@ -84,6 +72,10 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  // etherscan: {
+  //   apiKey: process.env.POLYGONSCAN_API_KEY,
+  // },
+
   mocha: {
     timeout: 3600000,
   },
