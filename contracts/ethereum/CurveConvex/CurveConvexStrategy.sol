@@ -30,7 +30,10 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         if (isTesting) _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function invest(bytes calldata data, uint256 amount) external {
+    function invest(bytes calldata data, uint256 amount)
+        external
+        returns (bytes memory)
+    {
         require(data.length == 32 * 5, "CurveConvexStrategy: data length");
         (
             address curvePool,
@@ -87,6 +90,8 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
             token.safeIncreaseAllowance(address(cvxBooster), lpAmount);
             cvxBooster.deposit(poolId, lpAmount, true);
         }
+
+        return encodeExitParams(curvePool, tokenIndexInCurve, poolId);
     }
 
     function exitAll(
@@ -165,7 +170,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         address curvePool,
         uint8 tokenIndexInCurve,
         uint256 convexPoolId
-    ) external pure returns (bytes memory) {
+    ) public pure returns (bytes memory) {
         return abi.encode(curvePool, tokenIndexInCurve, convexPoolId);
     }
 
