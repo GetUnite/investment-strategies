@@ -4,18 +4,18 @@ pragma solidity 0.8.11;
 interface IAlluoStrategy {
     /// @notice Invest tokens transferred to this contract.
     /// @dev Amount of tokens specified in `amount` is guranteed to be
-    /// transferred to strategy by vote executor
+    /// transferred to strategy by vote executor.
     /// @param data whatever data you want to pass to strategy from vote extry.
     /// @param amount amount of your tokens that will be invested.
     function invest(bytes calldata data, uint256 amount) external;
 
-    /// @notice Uninvest tokens transferred to this contract.
+    /// @notice Uninvest value and tranfer exchanged value to receiver.
     /// @param data whatever data you want to pass to strategy from vote extry.
     /// @param unwindPercent percentage of available assets to be released.
-    /// @param unwindDecimals decimal points in `unwindPercent`
-    /// @param outputCoin address of token that strategy MUST return
-    /// @param receiver address where tokens should go
-    /// @param swapRewards true if rewards are needed to swap to `outputCoin`, false otherwise
+    /// @param unwindDecimals decimal points in `unwindPercent`.
+    /// @param outputCoin address of token that strategy MUST return.
+    /// @param receiver address where tokens should go.
+    /// @param swapRewards true if rewards are needed to swap to `outputCoin`, false otherwise.
     function exitAll(
         bytes calldata data,
         uint256 unwindPercent,
@@ -27,9 +27,9 @@ interface IAlluoStrategy {
 
     /// @notice Claim available rewards.
     /// @param data whatever data you want to pass to strategy from vote extry.
-    /// @param outputCoin address of token that strategy MUST return (if swapRewards is true)
-    /// @param receiver address where tokens should go
-    /// @param swapRewards true if rewards are needed to swap to `outputCoin`, false otherwise
+    /// @param outputCoin address of token that strategy MUST return (if swapRewards is true).
+    /// @param receiver address where tokens should go.
+    /// @param swapRewards true if rewards are needed to swap to `outputCoin`, false otherwise.
     function exitOnlyRewards(
         bytes calldata data,
         address outputCoin,
