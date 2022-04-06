@@ -24,14 +24,21 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
     IERC20 public constant crvRewards =
         IERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
 
-    constructor(address gnosis, bool isTesting) {
+    constructor(
+        address voteExecutor,
+        address gnosis,
+        bool isTesting
+    ) {
         require(gnosis.isContract(), "CurveConvexStrategy: !contract");
         _grantRole(DEFAULT_ADMIN_ROLE, gnosis);
+        if (voteExecutor != address(0))
+            _grantRole(DEFAULT_ADMIN_ROLE, voteExecutor);
         if (isTesting) _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function invest(bytes calldata data, uint256 amount)
         external
+        onlyRole(DEFAULT_ADMIN_ROLE)
         returns (bytes memory)
     {
         require(data.length == 32 * 5, "CurveConvexStrategy: data length");
@@ -101,7 +108,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         address outputCoin,
         address receiver,
         bool swapRewards
-    ) external {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (
             address curvePool,
             uint8 tokenIndexInCurve,
@@ -141,7 +148,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         address outputCoin,
         address receiver,
         bool swapRewards
-    ) external {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (, , uint256 convexPoolId) = decodeExitParams(data);
         ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
         rewards.getReward(address(this), true);
