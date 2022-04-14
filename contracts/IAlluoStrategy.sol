@@ -14,15 +14,13 @@ interface IAlluoStrategy {
 
     /// @notice Uninvest value and tranfer exchanged value to receiver.
     /// @param data whatever data you want to pass to strategy from vote extry.
-    /// @param unwindPercent percentage of available assets to be released.
-    /// @param unwindDecimals decimal points in `unwindPercent`.
+    /// @param unwindPercent percentage of available assets to be released with 2 decimal points.
     /// @param outputCoin address of token that strategy MUST return.
     /// @param receiver address where tokens should go.
     /// @param swapRewards true if rewards are needed to swap to `outputCoin`, false otherwise.
     function exitAll(
         bytes calldata data,
         uint256 unwindPercent,
-        uint8 unwindDecimals,
         address outputCoin,
         address receiver,
         bool swapRewards
@@ -38,5 +36,14 @@ interface IAlluoStrategy {
         address outputCoin,
         address receiver,
         bool swapRewards
+    ) external;
+
+    /// @notice Execute any action on behalf of strategy.
+    /// @dev Regular call is executed. If any of extcall fails, transaction should revert.
+    /// @param destinations addresses to call
+    /// @param calldatas calldatas to execute
+    function multicall(
+        address[] calldata destinations,
+        bytes[] calldata calldatas
     ) external;
 }
