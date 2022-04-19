@@ -28,7 +28,7 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
       forking: {
-        url: process.env.FORKING_URL as string,
+        url: process.env.MAINNET_FORKING_URL as string,
         blockNumber: 14490169
       }
     },
