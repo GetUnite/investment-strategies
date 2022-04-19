@@ -87,6 +87,19 @@ describe("CurveConvexStrategy", function () {
         await expect(newStrategy).to.be.revertedWith("CurveConvexStrategy: 2!contract");
     })
 
+    it("Should check roles", async () => {
+        const contract = usdc.address;
+        const roleError = `AccessControl: account ${signers[0].address.toLowerCase()} is missing role ${ethers.constants.HashZero}`;
+
+        const Strategy = await ethers.getContractFactory("CurveConvexStrategy");
+        const newStrategy = await Strategy.deploy(contract, contract, false);
+
+        await expect(newStrategy.invest("0x", 0)).to.be.revertedWith(roleError);
+        await expect(newStrategy.exitAll("0x", 0, contract, contract, true)).to.be.revertedWith(roleError);
+        await expect(newStrategy.exitOnlyRewards("0x", contract, contract, true)).to.be.revertedWith(roleError);
+        await expect(newStrategy.multicall([], [])).to.be.revertedWith(roleError);
+    });
+
     it("Should check correct encoders/decoders", async () => {
         const curvePool = "0x0000000000000000000000000000000000000001";
         const poolToken = "0x0000000000000000000000000000000000000002";
