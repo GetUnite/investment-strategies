@@ -220,17 +220,6 @@ describe("Balancer strategy", async () => {
         }
     });
 
-    it("Should check strategy exit (zero yield)", async () => {
-        const tokens = [dai, usdc, usdt];
-        const stake = true;
-
-        for (let i = 0; i < tokens.length; i++) {
-            const data = await strategy.encodeEntryParams(poolId, i, stake);
-
-            await strategy.exitAll(data, 10000, frax.address, signers[0].address, false);
-        }
-    });
-
     it("Should execute mulicall", async () => {
         const token = usdc;
         const amount = parseUnits("200.0", await token.decimals());
