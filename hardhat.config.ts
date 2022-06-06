@@ -14,7 +14,7 @@ dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.11",
+    version: "0.8.14",
     settings: {
       optimizer: {
         enabled: true,
@@ -22,13 +22,14 @@ const config: HardhatUserConfig = {
       },
     },
   },
+
   networks: {
     hardhat: {
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
       forking: {
-        url: process.env.FORKING_URL as string,
+        url: process.env.MAINNET_FORKING_URL as string,
         blockNumber: 14490169
       }
     },
