@@ -19,7 +19,6 @@ describe("CurveHarvestEurStrategy", function () {
     let admin: SignerWithAddress;
     let voteExecutor: SignerWithAddress;
     let usdc: IERC20Metadata, usdt: IERC20Metadata, dai: IERC20Metadata, crv: IERC20Metadata, cvx: IERC20Metadata, miFarm: IERC20Metadata, eurt: IERC20Metadata, EURtCurveLp: IERC20Metadata;
-    let cvxBooster: ICvxBooster;
     let exchange: IExchange;
     let usdWhale: SignerWithAddress;
     let eurtWhale: SignerWithAddress;
@@ -41,9 +40,6 @@ describe("CurveHarvestEurStrategy", function () {
     const ZERO_ADDR = ethers.constants.AddressZero;
     const PolygonCurveEURtPool = "0x225fb4176f0e20cdb66b4a3df70ca3063281e855";
 
-    async function investTimeTravel() {
-        return ethers.provider.send("evm_increaseTime", []);
-    }
 
     before(async () => {
 
@@ -82,7 +78,6 @@ describe("CurveHarvestEurStrategy", function () {
         exchange = await Exchange.deploy(admin.address, true);
         await exchange.deployed();
         expect(await eurt.balanceOf(eurtWhale.address)).to.be.gt(0, "Whale has no eurt, or you are not forking Polygon");
-        const value = parseEther("2000.0");
 
         EURtCurveLp = await ethers.getContractAt("IERC20Metadata", "0x600743B1d8A96438bD46836fD34977a00293f6Aa")
         polygonCurveEdge = { swapProtocol: 1, pool: PolygonCurveEURtPool, fromCoin: EURtCurveLp.address, toCoin: usdc.address };
@@ -177,13 +172,13 @@ describe("CurveHarvestEurStrategy", function () {
         // Usd whale doesn't have EURtLp, so change slightly,
         if (fromAddress == EURtCurveLp.address) {
             usdc.connect(usdWhale).approve(exchange.address, parseUnits("100", 6));
-            const tx = await exchange.connect(usdWhale).exchange(usdc.address, EURtCurveLp.address, parseUnits("100", 6), 0)
             // Give some EURtLp to the usdWhale to exit pool.
+            await exchange.connect(usdWhale).exchange(usdc.address, EURtCurveLp.address, parseUnits("100", 6), 0)
         }
         if (fromAddress == eurt.address) {
             usdc.connect(usdWhale).approve(exchange.address, parseUnits("100", 6));
-            const tx = await exchange.connect(usdWhale).exchange(usdc.address, eurt.address, parseUnits("100", 6), 0)
             // Give some EURt to the usdWhale.
+            await exchange.connect(usdWhale).exchange(usdc.address, eurt.address, parseUnits("100", 6), 0)
         }
         const to = await ethers.getContractAt("IERC20Metadata", toAddress);
         const balBefore = await to.balanceOf(usdWhale.address);

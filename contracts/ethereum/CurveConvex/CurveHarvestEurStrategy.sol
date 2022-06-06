@@ -15,14 +15,15 @@ import "hardhat/console.sol";
 contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
     using Address for address;
     using SafeERC20 for IERC20;
-    // cvx booster = harvestVault
-    IHarvestVault public constant harvestVault = IHarvestVault(0xDDe43710DefEf6CbCf820B18DeBfC3cF9a4f449F);
-    // cvxRewards = staking pool 0xf74E8CFe03421D071c7dCCc3E5ecB6dDDede2f07
-    IHarvestPool public constant harvestPool =IHarvestPool(0xf74E8CFe03421D071c7dCCc3E5ecB6dDDede2f07);
+    IHarvestVault public constant harvestVault =
+        IHarvestVault(0xDDe43710DefEf6CbCf820B18DeBfC3cF9a4f449F);
+    IHarvestPool public constant harvestPool =
+        IHarvestPool(0xf74E8CFe03421D071c7dCCc3E5ecB6dDDede2f07);
     // miFARM
-    IERC20 public constant harvestReward = IERC20(0xab0b2ddB9C7e440fAc8E140A89c0dbCBf2d7Bbff);
+    IERC20 public constant harvestReward =
+        IERC20(0xab0b2ddB9C7e440fAc8E140A89c0dbCBf2d7Bbff);
 
-    // If not testing, please uncomment line26 and delete line27
+    // If not testing, please uncomment line27 and delete line28
     // IExchange public constant exchange = IExchange(0x6b45B9Ab699eFbb130464AcEFC23D49481a05773);
     IExchange public exchange;
 
@@ -39,8 +40,8 @@ contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
     ) {
         if (isTesting) {
             _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-            exchange = IExchange(0xAA5213E1575b1fAea849EaF3a0715B9bbdF3817A); }
-        else {
+            exchange = IExchange(0xAA5213E1575b1fAea849EaF3a0715B9bbdF3817A);
+        } else {
             require(
                 voteExecutor.isContract(),
                 "CurveHarvestEurStrategy: 1!contract"
@@ -73,10 +74,10 @@ contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
         poolToken.safeIncreaseAllowance(curvePool, amount);
 
         bytes memory curveCall = abi.encodeWithSelector(
-                0x029b2f34,
-                fourPoolTokensAmount,
-                0
-            );
+            0x029b2f34,
+            fourPoolTokensAmount,
+            0
+        );
         curvePool.functionCall(curveCall);
 
         // If poolId is set to max uint256, do not invest in harvest.
@@ -124,7 +125,6 @@ contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
             // withdraw everything from the pool
             harvestPool.withdraw(lpAmount);
             harvestVault.withdraw(lpAmount);
-
         } else {
             lpAmount = lpToken.balanceOf(address(this));
         }
