@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.11;
+pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "./../../IAlluoStrategy.sol";
 import "./interfaces/ICvxBooster.sol";
 import "./interfaces/ICvxBaseRewardPool.sol";
-import "./interfaces/IExchange.sol";
+import "../../interfaces/IExchange.sol";
 
 contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
     using Address for address;
@@ -142,7 +142,6 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         }
 
         if (lpAmount == 0) return;
-
         // exit with coin that we used for entry
         bytes memory curveCall = abi.encodeWithSignature(
             "remove_liquidity_one_coin(uint256,int128,uint256)",
@@ -151,7 +150,6 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
             0
         );
         curvePool.functionCall(curveCall);
-
         // execute exchanges and transfer all tokens to receiver
         exchangeAll(poolToken, IERC20(outputCoin));
         manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
@@ -253,7 +251,6 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         if (fromCoin == toCoin) return;
         uint256 amount = IERC20(fromCoin).balanceOf(address(this));
         if (amount == 0) return;
-
         fromCoin.safeApprove(address(exchange), amount);
         exchange.exchange(address(fromCoin), address(toCoin), amount, 0);
     }
