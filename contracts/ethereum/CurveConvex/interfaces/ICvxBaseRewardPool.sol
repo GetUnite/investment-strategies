@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.11;
+pragma solidity ^0.8.11;
 
 // Interface from ABI of
 // https://etherscan.io/address/0xB900EF131301B307dB5eFcbed9DBb50A3e209B2e

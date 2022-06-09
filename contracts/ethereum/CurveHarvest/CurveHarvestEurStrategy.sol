@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.14;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -7,22 +7,30 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import "./../../IAlluoStrategy.sol";
-import "./interfaces/ICvxBooster.sol";
-import "./interfaces/ICvxBaseRewardPool.sol";
 import "../../interfaces/IExchange.sol";
+import "./interfaces/IHarvestVault.sol";
+import "./interfaces/IHarvestPool.sol";
+import "hardhat/console.sol";
 
-contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
+contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
     using Address for address;
     using SafeERC20 for IERC20;
+    IHarvestVault public constant harvestVault =
+        IHarvestVault(0xDDe43710DefEf6CbCf820B18DeBfC3cF9a4f449F);
+    IHarvestPool public constant harvestPool =
+        IHarvestPool(0xf74E8CFe03421D071c7dCCc3E5ecB6dDDede2f07);
+    // miFARM
+    IERC20 public constant harvestReward =
+        IERC20(0xab0b2ddB9C7e440fAc8E140A89c0dbCBf2d7Bbff);
 
-    ICvxBooster public constant cvxBooster =
-        ICvxBooster(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
-    IExchange public constant exchange =
-        IExchange(0x29c66CF57a03d41Cfe6d9ecB6883aa0E2AbA21Ec);
-    IERC20 public constant cvxRewards =
-        IERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
-    IERC20 public constant crvRewards =
-        IERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
+    // If not testing, please uncomment line27 and delete line28
+    // IExchange public constant exchange = IExchange(0x6b45B9Ab699eFbb130464AcEFC23D49481a05773);
+    IExchange public exchange;
+
+    // no curve rewards for 4eur atm
+    // IERC20 public constant crvRewards =
+    //     IERC20();
+
     uint8 public constant unwindDecimals = 2;
 
     constructor(
@@ -30,13 +38,15 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         address gnosis,
         bool isTesting
     ) {
-        if (isTesting) _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        else {
+        if (isTesting) {
+            _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+            exchange = IExchange(0xAA5213E1575b1fAea849EaF3a0715B9bbdF3817A);
+        } else {
             require(
                 voteExecutor.isContract(),
-                "CurveConvexStrategy: 1!contract"
+                "CurveHarvestEurStrategy: 1!contract"
             );
-            require(gnosis.isContract(), "CurveConvexStrategy: 2!contract");
+            require(gnosis.isContract(), "CurveHarvestEurStrategy: 2!contract");
             _grantRole(DEFAULT_ADMIN_ROLE, gnosis);
             _grantRole(DEFAULT_ADMIN_ROLE, voteExecutor);
         }
@@ -56,51 +66,29 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
             uint256 poolId
         ) = decodeEntryParams(data);
 
-        // prepare amounts array for curve
+        // Prepare amounts array for curve, assuming that only depositing in 1 token (jeur etc).
         uint256[4] memory fourPoolTokensAmount;
         fourPoolTokensAmount[tokenIndexInCurve] = amount;
 
         // approve tokens to curve pool
         poolToken.safeIncreaseAllowance(curvePool, amount);
 
-        // encode call to curve - this ugly code handles different curve pool
-        // sizes and function selectors
-        bytes memory curveCall;
-        if (poolSize == 2) {
-            curveCall = abi.encodeWithSelector(
-                0x0b4c7e4d,
-                uint256[2]([fourPoolTokensAmount[0], fourPoolTokensAmount[1]]),
-                0
-            );
-        } else if (poolSize == 3) {
-            curveCall = abi.encodeWithSelector(
-                0x4515cef3,
-                uint256[3](
-                    [
-                        fourPoolTokensAmount[0],
-                        fourPoolTokensAmount[1],
-                        fourPoolTokensAmount[2]
-                    ]
-                ),
-                0
-            );
-        } else {
-            curveCall = abi.encodeWithSelector(
-                0x029b2f34,
-                fourPoolTokensAmount,
-                0
-            );
-        }
-
-        // execute call
+        bytes memory curveCall = abi.encodeWithSelector(
+            0x029b2f34,
+            fourPoolTokensAmount,
+            0
+        );
         curvePool.functionCall(curveCall);
 
-        // skip investment in convex, if poolId is uint256 max value
+        // If poolId is set to max uint256, do not invest in harvest.
         if (poolId != type(uint256).max) {
-            // invest tokens to convex
+            // Invest LP tokens into harvest to receive Vault tokens, then stake them.
             uint256 lpAmount = lpToken.balanceOf(address(this));
-            lpToken.safeIncreaseAllowance(address(cvxBooster), lpAmount);
-            cvxBooster.deposit(poolId, lpAmount, true);
+            lpToken.safeIncreaseAllowance(address(harvestVault), lpAmount);
+            harvestVault.deposit(lpAmount);
+            uint256 amountVault = harvestVault.balanceOf(address(this));
+            harvestVault.approve(address(harvestPool), amountVault);
+            harvestPool.stake(amountVault);
         }
 
         return
@@ -125,24 +113,24 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
             IERC20 poolToken,
             IERC20 lpToken,
             uint8 tokenIndexInCurve,
-            uint256 convexPoolId
+            uint256 harvestPoolId
         ) = decodeExitParams(data);
 
         uint256 lpAmount;
-        if (convexPoolId != type(uint256).max) {
-            ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
+        if (harvestPoolId != type(uint256).max) {
             lpAmount =
-                (rewards.balanceOf(address(this)) * unwindPercent) /
+                (harvestPool.balanceOf(address(this)) * unwindPercent) /
                 (10**(2 + unwindDecimals));
 
-            // withdraw Curve LPs and all rewards
-            rewards.withdrawAndUnwrap(lpAmount, true);
+            // withdraw everything from the pool
+            harvestPool.withdraw(lpAmount);
+            harvestVault.withdraw(lpAmount);
         } else {
             lpAmount = lpToken.balanceOf(address(this));
         }
+        harvestPool.getReward();
 
         if (lpAmount == 0) return;
-
         // exit with coin that we used for entry
         bytes memory curveCall = abi.encodeWithSignature(
             "remove_liquidity_one_coin(uint256,int128,uint256)",
@@ -163,10 +151,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         address receiver,
         bool swapRewards
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        (, , , , uint256 convexPoolId) = decodeExitParams(data);
-        ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
-        rewards.getReward(address(this), true);
-
+        harvestPool.getReward();
         manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
     }
 
@@ -175,7 +160,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         bytes[] calldata calldatas
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 length = destinations.length;
-        require(length == calldatas.length, "CurveConvexStrategy: lengths");
+        require(length == calldatas.length, "CurveHarvestEur: Length mismatch");
         for (uint256 i = 0; i < length; i++) {
             destinations[i].functionCall(calldatas[i]);
         }
@@ -187,7 +172,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         address poolToken,
         uint8 poolSize,
         uint8 tokenIndexInCurve,
-        uint256 convexPoolId
+        uint256 harvestPoolId
     ) external pure returns (bytes memory) {
         return
             abi.encode(
@@ -196,7 +181,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
                 poolToken,
                 poolSize,
                 tokenIndexInCurve,
-                convexPoolId
+                harvestPoolId
             );
     }
 
@@ -205,7 +190,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         address poolToken,
         address lpToken,
         uint8 tokenIndexInCurve,
-        uint256 convexPoolId
+        uint256 harvestPoolId
     ) public pure returns (bytes memory) {
         return
             abi.encode(
@@ -213,7 +198,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
                 poolToken,
                 lpToken,
                 tokenIndexInCurve,
-                convexPoolId
+                harvestPoolId
             );
     }
 
@@ -229,7 +214,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
             uint256
         )
     {
-        require(data.length == 32 * 6, "CurveConvexStrategy: length en");
+        require(data.length == 32 * 6, "CurveHarvestEurStrategy: length en");
         return
             abi.decode(data, (address, IERC20, IERC20, uint8, uint8, uint256));
     }
@@ -245,7 +230,7 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
             uint256
         )
     {
-        require(data.length == 32 * 5, "CurveConvexStrategy: length ex");
+        require(data.length == 32 * 5, "CurveHarvestEurStrategy: length ex");
         return abi.decode(data, (address, IERC20, IERC20, uint8, uint256));
     }
 
@@ -264,28 +249,13 @@ contract CurveConvexStrategy is AccessControl, IAlluoStrategy {
         address receiver
     ) private {
         if (swapRewards) {
-            exchangeAll(cvxRewards, outputCoin);
-            exchangeAll(crvRewards, outputCoin);
+            exchangeAll(harvestReward, outputCoin);
         } else {
-            cvxRewards.safeTransfer(
+            harvestReward.safeTransfer(
                 receiver,
-                cvxRewards.balanceOf(address(this))
-            );
-            crvRewards.safeTransfer(
-                receiver,
-                crvRewards.balanceOf(address(this))
+                harvestReward.balanceOf(address(this))
             );
         }
-
         outputCoin.safeTransfer(receiver, outputCoin.balanceOf(address(this)));
-    }
-
-    function getCvxRewardPool(uint256 poolId)
-        private
-        view
-        returns (ICvxBaseRewardPool)
-    {
-        (, , , address pool, , ) = cvxBooster.poolInfo(poolId);
-        return ICvxBaseRewardPool(pool);
     }
 }
