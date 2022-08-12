@@ -40,6 +40,13 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
     },
+    sepolia: {
+      url: "https://rpc.sepolia.online",
+      gasPrice: 10000000000,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      }
+    },
     rinkeby: {
       url: process.env.RINKEBY_URL,
       gasPrice: "auto",
