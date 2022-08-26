@@ -24,7 +24,6 @@ contract CurveConvexStrategyETH is AccessControl, IAlluoStrategy {
         IERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     IERC20 public constant crvRewards =
         IERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
-    uint8 public constant unwindDecimals = 2;
     IWrappedEther public constant wETH =
         IWrappedEther(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     receive() external payable {
@@ -140,8 +139,7 @@ contract CurveConvexStrategyETH is AccessControl, IAlluoStrategy {
         if (convexPoolId != type(uint256).max) {
             ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
             lpAmount =
-                (rewards.balanceOf(address(this)) * unwindPercent) /
-                (10**(2 + unwindDecimals));
+                (rewards.balanceOf(address(this)) * unwindPercent) / 10000;
 
             // withdraw Curve LPs and all rewards
             rewards.withdrawAndUnwrap(lpAmount, true);
