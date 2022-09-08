@@ -14,8 +14,6 @@ import "../../interfaces/IExchange.sol";
 import "./interfaces/IFraxFarmERC20.sol";
 import "./interfaces/IConvexWrapper.sol";
 
-import "hardhat/console.sol";
-    
 contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
     using Address for address;
     using SafeERC20 for IERC20;
@@ -109,11 +107,6 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
         // skip investment in convex, if poolId is uint256 max value
         if (poolId != type(uint256).max) {
             // invest tokens to convex
-            {(address rewardToken,,,uint128 reward_remaining) = IConvexWrapper(address(stakeToken)).rewards(0);
-            (address rewardToken2,,,uint128 reward_remaining2) = IConvexWrapper(address(stakeToken)).rewards(1);
-                 console.log(rewardToken, reward_remaining);
-                        console.log(rewardToken2, reward_remaining2);
-            }
             uint256 crvLpAmount = crvLpToken.balanceOf(address(this));
             crvLpToken.safeIncreaseAllowance(address(stakeToken), crvLpAmount);
             // Deposit these crvLptokens into the convex wrapper to get staked fraxLP tokens
