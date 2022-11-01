@@ -2,14 +2,13 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { AbiCoder, defaultAbiCoder, parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { CurveConvexStrategy, ICvxBooster, IERC20Metadata, IExchange } from "../typechain";
-
+import { CurveConvexStrategy, CurveConvexStrategyETH, ICvxBooster, IERC20Metadata, IExchange, IWrappedEther } from "../typechain";
 
 describe("CurveConvexStrategy", function () {
-    let strategy: CurveConvexStrategy;
+    let strategy: CurveConvexStrategyETH;
     let signers: SignerWithAddress[];
 
-    let usdc: IERC20Metadata, usdt: IERC20Metadata, frax: IERC20Metadata, crv: IERC20Metadata, cvx: IERC20Metadata;
+    let usdc: IERC20Metadata, usdt: IERC20Metadata, frax: IERC20Metadata, crv: IERC20Metadata, cvx: IERC20Metadata, weth: IERC20Metadata;
     let cvxBooster: ICvxBooster;
     let exchange: IExchange;
 
@@ -27,7 +26,7 @@ describe("CurveConvexStrategy", function () {
         frax = await ethers.getContractAt('IERC20Metadata', '0x853d955acef822db058eb8505911ed77f175b99e');
         crv = await ethers.getContractAt("IERC20Metadata", "0xD533a949740bb3306d119CC777fa900bA034cd52");
         cvx = await ethers.getContractAt("IERC20Metadata", "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B");
-
+        weth = await ethers.getContractAt("IERC20Metadata", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
         cvxBooster = await ethers.getContractAt("ICvxBooster", "0xF403C135812408BFbE8713b5A23a04b3D48AAE31");
         exchange = await ethers.getContractAt("IExchange", "0x29c66CF57a03d41Cfe6d9ecB6883aa0E2AbA21Ec")
 
@@ -36,11 +35,14 @@ describe("CurveConvexStrategy", function () {
         await exchange.exchange(
             ZERO_ADDR, frax.address, value, 0, { value: value }
         )
+
     });
 
     beforeEach(async () => {
-        const Strategy = await ethers.getContractFactory("CurveConvexStrategy");
+        const Strategy = await ethers.getContractFactory("CurveConvexStrategyETH");
         strategy = await Strategy.deploy(ZERO_ADDR, ZERO_ADDR, true);
+        let wrappedEther = await ethers.getContractAt("IWrappedEther", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2") as IWrappedEther
+        await wrappedEther.deposit({value: ethers.utils.parseEther("100")})
     });
 
     it("Should check initial contract state", async () => {
@@ -351,6 +353,220 @@ describe("CurveConvexStrategy", function () {
         expect(coinBalanceAfter).to.be.gt(coinBalanceBefore);
     })
 
+    describe("Testing with Native ETH", async () => {
+        it("Should execute full investment", async () => {
+            const curvePool = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
+            const poolToken: IERC20Metadata = weth;
+            const poolSize = 2;
+            const tokenIndexInCurve = 0;
+            const convexPoolId = 25;
+            const amount = parseUnits("100.0", await poolToken.decimals());
+
+            const poolInfo = await cvxBooster.poolInfo(convexPoolId);
+            const lpToken = await ethers.getContractAt("IERC20Metadata", poolInfo.lptoken)
+            const rewardPool = await ethers.getContractAt("ICvxBaseRewardPool", poolInfo.crvRewards)
+            const exitData = await strategy.encodeExitParams(
+                curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, tokenIndexInCurve, convexPoolId
+            )
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, lpToken.address, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", poolSize, tokenIndexInCurve, convexPoolId
+            );
+    
+            expect(await lpToken.balanceOf(strategy.address)).to.be.equal(0);
+    
+            const investBefore = await rewardPool.balanceOf(strategy.address);
+            await poolToken.transfer(strategy.address, amount);
+
+            const returnData = await strategy.callStatic.invest(entryData, amount);
+            await strategy.invest(entryData, amount);
+            const investAfter = await rewardPool.balanceOf(strategy.address);
+    
+            expect(await poolToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await lpToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(investAfter).to.be.gt(investBefore);
+            expect(returnData).to.be.equal(exitData);
+        });
+    
+        it("Should execute investment only for Curve", async () => {
+
+            const curvePool = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
+            const poolToken: IERC20Metadata = weth;
+            const poolSize = 2;
+            const tokenIndexInCurve = 0;
+            const convexPoolId = ethers.constants.MaxUint256;
+            const amount = parseUnits("100.0", await poolToken.decimals());
+    
+            
+            const poolInfo = await cvxBooster.poolInfo(25);
+            const lpToken = await ethers.getContractAt("IERC20Metadata", poolInfo.lptoken)
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, lpToken.address, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", poolSize, tokenIndexInCurve, convexPoolId
+            );
+    
+            const lpBalanceBefore = await lpToken.balanceOf(strategy.address);
+            await poolToken.transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount);
+            const lpBalanceAfter = await lpToken.balanceOf(strategy.address);
+    
+            expect(await poolToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(lpBalanceAfter).to.be.gt(lpBalanceBefore);
+        });
+    
+        it("Should unwind investment", async () => {
+
+            const curvePool = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
+            const poolToken: IERC20Metadata = weth;
+            const exitToken: IERC20Metadata = weth;
+            const poolSize = 2;
+            const tokenIndexInCurve = 0;
+            const convexPoolId = 25;
+            const amount = parseUnits("100.0", await poolToken.decimals());
+
+            const poolInfo = await cvxBooster.poolInfo(convexPoolId);
+            const lpToken = await ethers.getContractAt("IERC20Metadata", poolInfo.lptoken)
+            const rewardPool = await ethers.getContractAt("ICvxBaseRewardPool", poolInfo.crvRewards)
+    
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, lpToken.address, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", poolSize, tokenIndexInCurve, convexPoolId
+            );
+            const exitData = await strategy.encodeExitParams(
+                curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, tokenIndexInCurve, convexPoolId
+            );
+    
+            await poolToken.transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount);
+    
+            const balanceBefore = await exitToken.balanceOf(signers[0].address);
+            await strategy.exitAll(exitData, 10000, exitToken.address, signers[0].address, true);
+            const balanceAfter = await exitToken.balanceOf(signers[0].address);
+    
+            expect(balanceAfter).to.be.gt(balanceBefore);
+            expect(await poolToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await exitToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await lpToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await rewardPool.balanceOf(strategy.address)).to.be.equal(0);
+    
+            expect(await crv.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await cvx.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await crv.balanceOf(signers[0].address)).to.be.equal(0);
+            expect(await cvx.balanceOf(signers[0].address)).to.be.equal(0);
+        })
+    
+        it("Should unwind investment without Convex", async () => {
+
+            const curvePool = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
+            const poolToken: IERC20Metadata = weth;
+            const exitToken: IERC20Metadata = weth;
+            const poolSize = 2;
+            const tokenIndexInCurve = 0;
+            const amount = parseUnits("100.0", await poolToken.decimals());
+            const convexPoolId = ethers.constants.MaxUint256;
+            const poolInfo = await cvxBooster.poolInfo(25);
+            const lpToken = await ethers.getContractAt("IERC20Metadata", poolInfo.lptoken)
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, lpToken.address, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", poolSize, tokenIndexInCurve, convexPoolId
+            );
+            const exitData = await strategy.encodeExitParams(
+                curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, tokenIndexInCurve, convexPoolId
+            );
+    
+            await poolToken.transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount);
+    
+            const balanceBefore = await exitToken.balanceOf(signers[0].address);
+            await strategy.exitAll(exitData, 10000, exitToken.address, signers[0].address, true);
+            const balanceAfter = await exitToken.balanceOf(signers[0].address);
+    
+            expect(balanceAfter).to.be.gt(balanceBefore);
+            expect(await poolToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await exitToken.balanceOf(strategy.address)).to.be.equal(0);
+    
+            expect(await crv.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await cvx.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await crv.balanceOf(signers[0].address)).to.be.equal(0);
+            expect(await cvx.balanceOf(signers[0].address)).to.be.equal(0);
+        })
+    
+        it("Should unwind investment (without rewards swap)", async () => {
+
+            const curvePool = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
+            const poolToken: IERC20Metadata = weth;
+            const exitToken: IERC20Metadata = weth;
+            const poolSize = 2;
+            const tokenIndexInCurve = 0;
+            const convexPoolId = 25;
+            const amount = parseUnits("100.0", await poolToken.decimals());
+
+        
+            const poolInfo = await cvxBooster.poolInfo(convexPoolId);
+            const lpToken = await ethers.getContractAt("IERC20Metadata", poolInfo.lptoken)
+            const rewardPool = await ethers.getContractAt("ICvxBaseRewardPool", poolInfo.crvRewards)
+    
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, lpToken.address, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", poolSize, tokenIndexInCurve, convexPoolId
+            );
+            const exitData = await strategy.encodeExitParams(
+                curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, tokenIndexInCurve, convexPoolId
+            );
+    
+            await poolToken.transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount);
+    
+            const cvxBalanceBefore = await cvx.balanceOf(signers[0].address);
+            const crvBalanceBefore = await crv.balanceOf(signers[0].address);
+            const balanceBefore = await exitToken.balanceOf(signers[0].address);
+            await strategy.exitAll(exitData, 10000, exitToken.address, signers[0].address, false);
+            const balanceAfter = await exitToken.balanceOf(signers[0].address);
+            const cvxBalanceAfter = await cvx.balanceOf(signers[0].address);
+            const crvBalanceAfter = await crv.balanceOf(signers[0].address);
+    
+            expect(balanceAfter).to.be.gt(balanceBefore);
+            expect(await poolToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await exitToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await lpToken.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await rewardPool.balanceOf(strategy.address)).to.be.equal(0);
+    
+            expect(await crv.balanceOf(strategy.address)).to.be.equal(0);
+            expect(await cvx.balanceOf(strategy.address)).to.be.equal(0);
+            expect(crvBalanceAfter).to.be.gt(crvBalanceBefore);
+            expect(cvxBalanceAfter).to.be.gt(cvxBalanceBefore);
+        })
+    
+        it("Should only claim rewards", async () => {
+            const curvePool = "0xDC24316b9AE028F1497c275EB9192a3Ea0f67022";
+            const poolToken: IERC20Metadata = weth;
+            const exitToken: IERC20Metadata = weth;
+            const poolSize = 2;
+            const tokenIndexInCurve = 0;
+            const convexPoolId = 25;
+            const amount = parseUnits("100.0", await poolToken.decimals());
+
+
+            const poolInfo = await cvxBooster.poolInfo(convexPoolId);
+            const lpToken = await ethers.getContractAt("IERC20Metadata", poolInfo.lptoken)
+            const rewardPool = await ethers.getContractAt("ICvxBaseRewardPool", poolInfo.crvRewards)
+    
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, lpToken.address, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", poolSize, tokenIndexInCurve, convexPoolId
+            );
+            const exitData = await strategy.encodeExitParams(
+                curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, tokenIndexInCurve, convexPoolId
+            );
+    
+            await poolToken.transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount);
+    
+            const lpBalanceBefore = await rewardPool.balanceOf(strategy.address);
+            const coinBalanceBefore = await exitToken.balanceOf(signers[0].address);
+            await strategy.exitOnlyRewards(exitData, exitToken.address, signers[0].address, true);
+            const lpBalanceAfter = await rewardPool.balanceOf(strategy.address);
+            const coinBalanceAfter = await exitToken.balanceOf(signers[0].address);
+    
+            expect(lpBalanceBefore).to.not.be.equal(0);
+            expect(lpBalanceBefore).to.be.equal(lpBalanceAfter);
+            expect(coinBalanceAfter).to.be.gt(coinBalanceBefore);
+        })
+    })
     it("Should execute mulicall", async () => {
         const token = frax;
         const amount = parseUnits("200.0", await token.decimals());
