@@ -3,7 +3,6 @@ pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "hardhat/console.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -43,7 +42,6 @@ contract CurveConvexStrategyV2Native is
     bool public upgradeStatus;
     address public priceFeed;
 
-    // address[] public additionalRewards;
     EnumerableSetUpgradeable.AddressSet private additionalRewards;
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
@@ -73,6 +71,10 @@ contract CurveConvexStrategyV2Native is
         _grantRole(UPGRADER_ROLE, msg.sender);
     }
 
+    /// @notice Enters a Curve Pool that may use native ETH and stake it into Convex for liquidity direction
+    /// @dev Same logic as the CurveConvexStrategyV2, but with additional support for native ETH
+    /// @param data Payload containing necessary information to enter a curve pool and stake into convex
+    /// @param amount Amount of poolToken to enter curve with 
     function invest(bytes calldata data, uint256 amount)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -138,12 +140,20 @@ contract CurveConvexStrategyV2Native is
         }
     }
 
+    /// @notice Exits a specific position with a percentage, with additional options
+    /// @dev This is called by the VoteExecutor to leave a specific convex position, with logic to handle rewards.
+    /// @param data contains all the necessary data to exit a convex pool
+    /// @param unwindPercent percentage of the position to unwind
+    /// @param outputCoin IERC20
+    /// @param receiver recipient of residual funds
+    /// @param shouldWithdrawRewards bool to decide whether funds should be claimed from convex
+    /// @param swapRewards bool to decide whether rewards should be swapped into a specific token
     function exitAll(
         bytes calldata data,
         uint256 unwindPercent,
         IERC20 outputCoin,
         address receiver,
-        bool _withdrawRewards,
+        bool shouldWithdrawRewards,
         bool swapRewards
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (
@@ -162,11 +172,10 @@ contract CurveConvexStrategyV2Native is
                 (rewards.balanceOf(address(this)) * unwindPercent) / 10000;
 
             // withdraw Curve LPs and all rewards
-            rewards.withdrawAndUnwrap(lpAmount, _withdrawRewards);
+            rewards.withdrawAndUnwrap(lpAmount, shouldWithdrawRewards);
         } else {
             lpAmount = lpToken.balanceOf(address(this)) * unwindPercent / 10000;
         }
-
         if (lpAmount == 0) return;
 
         // exit with coin that we used for entry
@@ -176,6 +185,8 @@ contract CurveConvexStrategyV2Native is
             tokenIndexInCurve,
             0
         );
+
+        // Prevent stack too deep errors.
         {
             uint256  valueETH = address(this).balance;
             curvePool.functionCall(curveCall);
@@ -187,15 +198,19 @@ contract CurveConvexStrategyV2Native is
         }
 
         // execute exchanges and transfer all tokens to receiver
-        exchangeAll(poolToken, IERC20(outputCoin));
-        if(_withdrawRewards){
-            manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
+        _exchangeAll(poolToken, IERC20(outputCoin));
+        if(shouldWithdrawRewards){
+            _manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
         }
         else{
             outputCoin.safeTransfer(receiver, outputCoin.balanceOf(address(this)));
         }
     }
 
+    /// @notice Calculates the current LP position in Convex in terms of a specific asset and claims rewards
+    /// @dev Called by the Vote Executor, this is used in the process of calculating the current position in Convex for Alluo staking reward calculations
+    /// @param data Contains Convex pool data as well as the asset the function should return the value in.
+    /// @return uint256 amount of the position valued in assetId price.
     function getDeployedAmountAndRewards(
         bytes calldata data
     ) external onlyRole(DEFAULT_ADMIN_ROLE) returns(uint256){
@@ -219,10 +234,21 @@ contract CurveConvexStrategyV2Native is
         return IPriceFeedRouterV2(priceFeed).decimalsConverter(fiatPrice, fiatDecimals, 18);
     }
     
+
+    /// @notice Swaps rewards to "token" and sends it to the Vote Executor
+    /// @dev Swaps existing rewards already claimed to the token. This does not claim from convex.
+    /// @param _token The token we expect to receive rewards in
     function withdrawRewards(address _token) public onlyRole(DEFAULT_ADMIN_ROLE){
-        manageRewardsAndWithdraw(true, IERC20(_token), msg.sender);
+        _manageRewardsAndWithdraw(true, IERC20(_token), msg.sender);
     }
 
+
+    /// @notice Only claims rewards and swaps them to the output coin
+    /// @dev Used when exit delta is 0.
+    /// @param data Contains Convex data
+    /// @param outputCoin Token to receive rewards in.
+    /// @param receiver Recipient of the rewards.
+    /// @param swapRewards Whether to swap rewards into the output coin.
     function exitOnlyRewards(
         bytes calldata data,
         address outputCoin,
@@ -232,20 +258,13 @@ contract CurveConvexStrategyV2Native is
         (,uint256 convexPoolId,) = decodeRewardsParams(data);
         ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
         rewards.getReward(address(this), true);
-        manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
+        _manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
     }
 
-    function multicall(
-        address[] calldata destinations,
-        bytes[] calldata calldatas
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 length = destinations.length;
-        require(length == calldatas.length, "CurveConvexStrategyV2: lengths");
-        for (uint256 i = 0; i < length; i++) {
-            destinations[i].functionCall(calldatas[i]);
-        }
-    }
-
+    /// @notice Used to track any additional rewards we need to keep track of.
+    /// @dev Important when claiming/ swapping all rewards to output coin
+    /// @param _newToken token address to add/remove
+    /// @param _status whether to add or remove
     function changeAdditionalRewardTokenStatus(
         address _newToken,
         bool _status
@@ -258,6 +277,10 @@ contract CurveConvexStrategyV2Native is
         }
     }
 
+    /// @notice Similar to getDeployedAmountandRewards, but doesn't claim rewards
+    /// @dev Used as a view function to track positions
+    /// @param data contains information of the convex pool and the assetId to return the value of the position.
+    /// @return value of the current position described by data
     function getDeployedAmount(
         bytes calldata data
     ) external view returns(uint256){
@@ -278,6 +301,85 @@ contract CurveConvexStrategyV2Native is
         (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(priceFeed).getPriceOfAmount(address(lpToken), lpAmount, assetId);
 
         return IPriceFeedRouterV2(priceFeed).decimalsConverter(fiatPrice, fiatDecimals, 18);
+    }
+
+    /// @notice Exchanges the fromCoin to the toCoin
+    /// @dev Explain to a developer any extra details
+    /// @param fromCoin IERC20 
+    /// @param toCoin  IERC20
+    function _exchangeAll(IERC20 fromCoin, IERC20 toCoin) internal {
+        if (fromCoin == toCoin) return;
+        uint256 amount = IERC20(fromCoin).balanceOf(address(this));
+        if (amount == 0) return;
+        
+        fromCoin.safeApprove(address(exchange), amount);
+        exchange.exchange(address(fromCoin), address(toCoin), amount, 0);
+    }
+
+    /// @notice Swaps all rewards if instructed to the output coin and sends the funds to the receiver
+    /// @dev Explain to a developer any extra details
+    /// @param swapRewards bool to swap or not
+    /// @param outputCoin IERC20
+    /// @param receiver receiver of the funds
+    function _manageRewardsAndWithdraw(
+        bool swapRewards,
+        IERC20 outputCoin,
+        address receiver
+    ) internal {
+        if (swapRewards) {
+            _exchangeAll(cvxRewards, outputCoin);
+            _exchangeAll(crvRewards, outputCoin);
+
+            uint256 additionalRewardsLength = additionalRewards.length();
+            if(additionalRewardsLength != 0){
+                for (uint256 i; i < additionalRewardsLength; i++) {
+                    _exchangeAll(IERC20(additionalRewards.at(i)), outputCoin);
+                }
+            }
+        } else {
+            cvxRewards.safeTransfer(
+                receiver,
+                cvxRewards.balanceOf(address(this))
+            );
+            crvRewards.safeTransfer(
+                receiver,
+                crvRewards.balanceOf(address(this))
+            );
+
+            uint256 additionalRewardsLength = additionalRewards.length();
+            if(additionalRewardsLength != 0){
+                for (uint256 i; i < additionalRewardsLength; i++) {
+                    address token = additionalRewards.at(i);
+                    IERC20(token).safeTransfer(
+                        receiver,
+                        IERC20(token).balanceOf(address(this))
+                    );
+                }
+            }
+        }
+
+        outputCoin.safeTransfer(receiver, outputCoin.balanceOf(address(this)));
+    }
+
+    function getCvxRewardPool(uint256 poolId)
+        private
+        view
+        returns (ICvxBaseRewardPool)
+    {
+        (, , , address pool, , ) = cvxBooster.poolInfo(poolId);
+        return ICvxBaseRewardPool(pool);
+    }
+
+
+    function multicall(
+        address[] calldata destinations,
+        bytes[] calldata calldatas
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 length = destinations.length;
+        require(length == calldatas.length, "CurveConvexStrategyV2: lengths");
+        for (uint256 i = 0; i < length; i++) {
+            destinations[i].functionCall(calldatas[i]);
+        }
     }
 
     function encodeEntryParams(
@@ -377,71 +479,11 @@ contract CurveConvexStrategyV2Native is
         return abi.decode(data, (IERC20, uint256, uint256));
     }
 
-    function exchangeAll(IERC20 fromCoin, IERC20 toCoin) private {
-        if (fromCoin == toCoin) return;
-        uint256 amount = IERC20(fromCoin).balanceOf(address(this));
-        if (amount == 0) return;
-
-        fromCoin.safeApprove(address(exchange), amount);
-        exchange.exchange(address(fromCoin), address(toCoin), amount, 0);
-    }
-
-    function manageRewardsAndWithdraw(
-        bool swapRewards,
-        IERC20 outputCoin,
-        address receiver
-    ) private {
-        if (swapRewards) {
-            exchangeAll(cvxRewards, outputCoin);
-            exchangeAll(crvRewards, outputCoin);
-
-            uint256 additionalRewardsLength = additionalRewards.length();
-            if(additionalRewardsLength != 0){
-                for (uint256 i; i < additionalRewardsLength; i++) {
-                    exchangeAll(IERC20(additionalRewards.at(i)), outputCoin);
-                }
-            }
-        } else {
-            cvxRewards.safeTransfer(
-                receiver,
-                cvxRewards.balanceOf(address(this))
-            );
-            crvRewards.safeTransfer(
-                receiver,
-                crvRewards.balanceOf(address(this))
-            );
-
-            uint256 additionalRewardsLength = additionalRewards.length();
-            if(additionalRewardsLength != 0){
-                for (uint256 i; i < additionalRewardsLength; i++) {
-                    address token = additionalRewards.at(i);
-                    IERC20(token).safeTransfer(
-                        receiver,
-                        IERC20(token).balanceOf(address(this))
-                    );
-                }
-            }
-        }
-
-        outputCoin.safeTransfer(receiver, outputCoin.balanceOf(address(this)));
-    }
-
-    function getCvxRewardPool(uint256 poolId)
-        private
-        view
-        returns (ICvxBaseRewardPool)
-    {
-        (, , , address pool, , ) = cvxBooster.poolInfo(poolId);
-        return ICvxBaseRewardPool(pool);
-    }
-
+    
     function grantRole(bytes32 role, address account)
     public
     override
     onlyRole(getRoleAdmin(role)) {
-        // if (role == DEFAULT_ADMIN_ROLE) {
-        //     require(account.isContract(), "Handler: Not contract");
-        // }
         _grantRole(role, account);
     }
 
