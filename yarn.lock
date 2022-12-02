@@ -754,10 +754,10 @@
   "resolved" "https://registry.npmjs.org/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.0.tgz"
   "version" "4.8.0"
 
-"@openzeppelin/contracts@^4.4.0":
-  "integrity" "sha512-o+pHCf/yMLSlV5MkDQEzEQL402i6SoRnktru+0rdSxVEFZcTzzGhZCAtZjUFyKGazMSv1TilzMg+RbED1N8XHQ=="
-  "resolved" "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.4.1.tgz"
-  "version" "4.4.1"
+"@openzeppelin/contracts@^4.7.3":
+  "integrity" "sha512-AGuwhRRL+NaKx73WKRNzeCxOCOCxpaqF+kp8TJ89QzAipSwZy/NoflkWaL9bywXFRhIzXt8j38sfF7KBKCPWLw=="
+  "resolved" "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.8.0.tgz"
+  "version" "4.8.0"
 
 "@openzeppelin/hardhat-upgrades@^1.21.0":
   "integrity" "sha512-Kwl7IN0Hlhj4HluMTTl0DrtU90OI/Q6rG3sAyd2pv3fababe9EuZqs9DydOlkWM45JwTzC+eBzX3TgHsqI13eA=="
