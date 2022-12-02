@@ -3,7 +3,6 @@ pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "hardhat/console.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -250,7 +249,6 @@ contract CurveConvexStrategyV2 is
         uint256 amount = IERC20(fromCoin).balanceOf(address(this));
         if (amount == 0) return;
         fromCoin.safeApprove(address(exchange), amount);
-        console.log("Params", address(fromCoin), address(toCoin), amount);
         exchange.exchange(address(fromCoin), address(toCoin), amount, 0);
     }
 
