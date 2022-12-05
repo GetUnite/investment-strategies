@@ -14,8 +14,10 @@ interface ICurveEURt {
         uint256 min_dy
     ) external returns (uint256);
 
-    function add_liquidity(uint256[4] memory amounts, uint256 min_mint_amount)
-        external;
+    function add_liquidity(
+        uint256[4] memory amounts,
+        uint256 min_mint_amount
+    ) external;
 
     function remove_liquidity_one_coin(
         uint256 token_amount,

@@ -27,18 +27,13 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
         IERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     IERC20 public constant crvRewards =
         IERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
-    IERC20 public constant fraxRewards = 
+    IERC20 public constant fraxRewards =
         IERC20(0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0);
     uint8 public constant unwindDecimals = 2;
 
-    receive() external payable {
-    }
+    receive() external payable {}
 
-    constructor(
-        address voteExecutor,
-        address gnosis,
-        bool isTesting
-    ) {
+    constructor(address voteExecutor, address gnosis, bool isTesting) {
         if (isTesting) _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         else {
             require(
@@ -51,11 +46,10 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
         }
     }
 
-    function invest(bytes calldata data, uint256 amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        returns (bytes memory)
-    {
+    function invest(
+        bytes calldata data,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bytes memory) {
         (
             address curvePool,
             IERC20 crvLpToken,
@@ -63,7 +57,7 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
             uint8 poolSize,
             uint8 tokenIndexInCurve,
             uint256 poolId,
-            IERC20 stakeToken, 
+            IERC20 stakeToken,
             address fraxPool,
             uint256 duration
         ) = decodeEntryParams(data);
@@ -110,11 +104,17 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
             uint256 crvLpAmount = crvLpToken.balanceOf(address(this));
             crvLpToken.safeIncreaseAllowance(address(stakeToken), crvLpAmount);
             // Deposit these crvLptokens into the convex wrapper to get staked fraxLP tokens
-            IConvexWrapper(address(stakeToken)).deposit(crvLpAmount, address(this));
+            IConvexWrapper(address(stakeToken)).deposit(
+                crvLpAmount,
+                address(this)
+            );
             uint256 fraxLpAmount = stakeToken.balanceOf(address(this));
             stakeToken.safeIncreaseAllowance(fraxPool, fraxLpAmount);
             // Now stake and lock these LP tokens into the frax farm.
-            kek_id = IFraxFarmERC20(fraxPool).stakeLocked(fraxLpAmount, duration);
+            kek_id = IFraxFarmERC20(fraxPool).stakeLocked(
+                fraxLpAmount,
+                duration
+            );
         }
         emit Locked(kek_id);
 
@@ -151,25 +151,36 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
             // Withdraw locked fraxLP tokens.
             // Get all rewards accumulated.
 
-            address[] memory fraxPoolRewards = IFraxFarmERC20(fraxPool).getAllRewardTokens();
+            address[] memory fraxPoolRewards = IFraxFarmERC20(fraxPool)
+                .getAllRewardTokens();
             IFraxFarmERC20(fraxPool).withdrawLocked(kek_id, address(this));
             // Get rewards from Frax
             IFraxFarmERC20(fraxPool).getReward(address(this));
             // Get rewards from Convex
-            IConvexWrapper(IFraxFarmERC20(fraxPool).stakingToken()).getReward(address(this));
+            IConvexWrapper(IFraxFarmERC20(fraxPool).stakingToken()).getReward(
+                address(this)
+            );
 
             // Simply send all frax rewards to receiver.
             for (uint256 i; i < fraxPoolRewards.length; i++) {
-                IERC20(fraxPoolRewards[i]).transfer(receiver, IERC20(fraxPoolRewards[i]).balanceOf(address(this)));
+                IERC20(fraxPoolRewards[i]).transfer(
+                    receiver,
+                    IERC20(fraxPoolRewards[i]).balanceOf(address(this))
+                );
             }
             // Withdraw all the curveLPs and curve rewards.
             lpAmount =
-                ( IERC20(IFraxFarmERC20(fraxPool).stakingToken()).balanceOf(address(this)) * unwindPercent) /
-                (10**(2 + unwindDecimals));
+                (IERC20(IFraxFarmERC20(fraxPool).stakingToken()).balanceOf(
+                    address(this)
+                ) * unwindPercent) /
+                (10 ** (2 + unwindDecimals));
 
-            IConvexWrapper(IFraxFarmERC20(fraxPool).stakingToken()).withdrawAndUnwrap(lpAmount);
+            IConvexWrapper(IFraxFarmERC20(fraxPool).stakingToken())
+                .withdrawAndUnwrap(lpAmount);
         } else {
-            lpAmount = crvLpToken.balanceOf(address(this)) * unwindPercent / 10000;
+            lpAmount =
+                (crvLpToken.balanceOf(address(this)) * unwindPercent) /
+                10000;
         }
 
         if (lpAmount == 0) return;
@@ -193,26 +204,27 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
         address receiver,
         bool swapRewards
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-
-        (
-            ,
-            ,
-            ,
-            ,
-            uint256 convexPoolId,
-            address fraxPool,
-        ) = decodeExitParams(data);
+        (, , , , uint256 convexPoolId, address fraxPool, ) = decodeExitParams(
+            data
+        );
         if (convexPoolId != type(uint256).max) {
             // Withdraw locked fraxLP tokens.
             // Get all rewards accumulated.
-            address[] memory fraxPoolRewards = IFraxFarmERC20(fraxPool).getAllRewardTokens();
+            address[] memory fraxPoolRewards = IFraxFarmERC20(fraxPool)
+                .getAllRewardTokens();
             // Get rewards from Frax
             IFraxFarmERC20(fraxPool).getReward(address(this));
             // Get rewards from Convex
-            IConvexWrapper(IFraxFarmERC20(fraxPool).stakingToken()).getReward(address(this), address(this));
+            IConvexWrapper(IFraxFarmERC20(fraxPool).stakingToken()).getReward(
+                address(this),
+                address(this)
+            );
             // Simply send all rewards to receiver.
             for (uint256 i; i < fraxPoolRewards.length; i++) {
-                IERC20(fraxPoolRewards[i]).transfer(receiver, IERC20(fraxPoolRewards[i]).balanceOf(address(this)));
+                IERC20(fraxPoolRewards[i]).transfer(
+                    receiver,
+                    IERC20(fraxPoolRewards[i]).balanceOf(address(this))
+                );
             }
         } else {
             ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
@@ -220,6 +232,7 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
         }
         manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
     }
+
     function multicall(
         address[] calldata destinations,
         bytes[] calldata calldatas
@@ -250,7 +263,7 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
                 poolSize,
                 tokenIndexInCurve,
                 convexPoolId,
-                stakeToken, 
+                stakeToken,
                 fraxPool,
                 duration
             );
@@ -277,7 +290,9 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
             );
     }
 
-    function decodeEntryParams(bytes calldata data)
+    function decodeEntryParams(
+        bytes calldata data
+    )
         public
         pure
         returns (
@@ -294,24 +309,35 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
     {
         require(data.length == 32 * 9, "CurveConvexStrategy: length en");
         return
-            abi.decode(data, (address, IERC20, IERC20, uint8, uint8, uint256, IERC20, address, uint256));
+            abi.decode(
+                data,
+                (
+                    address,
+                    IERC20,
+                    IERC20,
+                    uint8,
+                    uint8,
+                    uint256,
+                    IERC20,
+                    address,
+                    uint256
+                )
+            );
     }
 
-    function decodeExitParams(bytes calldata data)
+    function decodeExitParams(
+        bytes calldata data
+    )
         public
         pure
-        returns (
-            address,
-            IERC20,
-            IERC20,
-            uint8,
-            uint256,
-            address,
-            bytes32
-        )
+        returns (address, IERC20, IERC20, uint8, uint256, address, bytes32)
     {
         require(data.length == 32 * 7, "CurveConvexStrategy: length ex");
-        return abi.decode(data, (address, IERC20, IERC20, uint8, uint256, address,bytes32));
+        return
+            abi.decode(
+                data,
+                (address, IERC20, IERC20, uint8, uint256, address, bytes32)
+            );
     }
 
     function exchangeAll(IERC20 fromCoin, IERC20 toCoin) private {
@@ -346,11 +372,9 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
         outputCoin.safeTransfer(receiver, outputCoin.balanceOf(address(this)));
     }
 
-    function getCvxRewardPool(uint256 poolId)
-        private
-        view
-        returns (ICvxBaseRewardPool)
-    {
+    function getCvxRewardPool(
+        uint256 poolId
+    ) private view returns (ICvxBaseRewardPool) {
         (, , , address pool, , ) = cvxBooster.poolInfo(poolId);
         return ICvxBaseRewardPool(pool);
     }

@@ -23,14 +23,12 @@ contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
     IERC20 public constant harvestReward =
         IERC20(0xab0b2ddB9C7e440fAc8E140A89c0dbCBf2d7Bbff);
 
-    IExchange public constant exchange = IExchange(0x6b45B9Ab699eFbb130464AcEFC23D49481a05773);
+    IExchange public constant exchange =
+        IExchange(0x6b45B9Ab699eFbb130464AcEFC23D49481a05773);
 
     uint8 public constant unwindDecimals = 2;
 
-    constructor(
-        address voteExecutor,
-        address gnosis
-    ) {
+    constructor(address voteExecutor, address gnosis) {
         require(
             voteExecutor.isContract(),
             "CurveHarvestEurStrategy: 1!contract"
@@ -40,11 +38,10 @@ contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
         _grantRole(DEFAULT_ADMIN_ROLE, voteExecutor);
     }
 
-    function invest(bytes calldata data, uint256 amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        returns (bytes memory)
-    {
+    function invest(
+        bytes calldata data,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bytes memory) {
         (
             address curvePool,
             IERC20 lpToken,
@@ -108,7 +105,7 @@ contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
         if (harvestPoolId != type(uint256).max) {
             lpAmount =
                 (harvestPool.balanceOf(address(this)) * unwindPercent) /
-                (10**(2 + unwindDecimals));
+                (10 ** (2 + unwindDecimals));
 
             // withdraw everything from the pool
             harvestPool.withdraw(lpAmount);
@@ -190,34 +187,17 @@ contract CurveHarvestEurStrategy is AccessControl, IAlluoStrategy {
             );
     }
 
-    function decodeEntryParams(bytes calldata data)
-        public
-        pure
-        returns (
-            address,
-            IERC20,
-            IERC20,
-            uint8,
-            uint8,
-            uint256
-        )
-    {
+    function decodeEntryParams(
+        bytes calldata data
+    ) public pure returns (address, IERC20, IERC20, uint8, uint8, uint256) {
         require(data.length == 32 * 6, "CurveHarvestEurStrategy: length en");
         return
             abi.decode(data, (address, IERC20, IERC20, uint8, uint8, uint256));
     }
 
-    function decodeExitParams(bytes calldata data)
-        public
-        pure
-        returns (
-            address,
-            IERC20,
-            IERC20,
-            uint8,
-            uint256
-        )
-    {
+    function decodeExitParams(
+        bytes calldata data
+    ) public pure returns (address, IERC20, IERC20, uint8, uint256) {
         require(data.length == 32 * 5, "CurveHarvestEurStrategy: length ex");
         return abi.decode(data, (address, IERC20, IERC20, uint8, uint256));
     }
