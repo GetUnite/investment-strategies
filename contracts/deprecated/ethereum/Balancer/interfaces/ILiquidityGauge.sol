@@ -44,13 +44,15 @@ interface ILiquidityGauge is IBalancerStructs {
         bytes32 _s
     ) external returns (bool);
 
-    function increaseAllowance(address _spender, uint256 _added_value)
-        external
-        returns (bool);
+    function increaseAllowance(
+        address _spender,
+        uint256 _added_value
+    ) external returns (bool);
 
-    function decreaseAllowance(address _spender, uint256 _subtracted_value)
-        external
-        returns (bool);
+    function decreaseAllowance(
+        address _spender,
+        uint256 _subtracted_value
+    ) external returns (bool);
 
     function user_checkpoint(address addr) external returns (bool);
 
@@ -58,27 +60,31 @@ interface ILiquidityGauge is IBalancerStructs {
 
     function kick(address addr) external;
 
-    function deposit_reward_token(address _reward_token, uint256 _amount)
-        external;
+    function deposit_reward_token(
+        address _reward_token,
+        uint256 _amount
+    ) external;
 
     function add_reward(address _reward_token, address _distributor) external;
 
-    function set_reward_distributor(address _reward_token, address _distributor)
-        external;
+    function set_reward_distributor(
+        address _reward_token,
+        address _distributor
+    ) external;
 
     function killGauge() external;
 
     function unkillGauge() external;
 
-    function claimed_reward(address _addr, address _token)
-        external
-        view
-        returns (uint256);
+    function claimed_reward(
+        address _addr,
+        address _token
+    ) external view returns (uint256);
 
-    function claimable_reward(address _user, address _reward_token)
-        external
-        view
-        returns (uint256);
+    function claimable_reward(
+        address _user,
+        address _reward_token
+    ) external view returns (uint256);
 
     function claimable_tokens(address addr) external returns (uint256);
 
@@ -92,10 +98,10 @@ interface ILiquidityGauge is IBalancerStructs {
 
     function version() external view returns (string memory);
 
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
 
     function initialize(address _lp_token) external;
 
@@ -121,24 +127,22 @@ interface ILiquidityGauge is IBalancerStructs {
 
     function rewards_receiver(address arg0) external view returns (address);
 
-    function reward_integral_for(address arg0, address arg1)
-        external
-        view
-        returns (uint256);
+    function reward_integral_for(
+        address arg0,
+        address arg1
+    ) external view returns (uint256);
 
     function working_balances(address arg0) external view returns (uint256);
 
     function working_supply() external view returns (uint256);
 
-    function integrate_inv_supply_of(address arg0)
-        external
-        view
-        returns (uint256);
+    function integrate_inv_supply_of(
+        address arg0
+    ) external view returns (uint256);
 
-    function integrate_checkpoint_of(address arg0)
-        external
-        view
-        returns (uint256);
+    function integrate_checkpoint_of(
+        address arg0
+    ) external view returns (uint256);
 
     function integrate_fraction(address arg0) external view returns (uint256);
 

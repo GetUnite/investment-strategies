@@ -2,7 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { AbiCoder, defaultAbiCoder, parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers, network, upgrades } from "hardhat";
-import {CurveConvexStrategyV2, CurveConvexStrategyV2Native, ICvxBooster, IERC20Metadata, IExchange, IWrappedEther } from "../typechain";
+import { CurveConvexStrategyV2, CurveConvexStrategyV2Native, ICvxBooster, IERC20Metadata, IExchange, IWrappedEther } from "../typechain";
 
 async function skipDays(d: number) {
     ethers.provider.send('evm_increaseTime', [d * 86400]);
@@ -30,7 +30,7 @@ describe("CurveConvexStrategyV2Native", function () {
                     //you can fork from last block by commenting next line
                     blockNumber: 16095613,
                 },
-            }, ],
+            },],
         });
         signers = await ethers.getSigners();
 
@@ -50,13 +50,13 @@ describe("CurveConvexStrategyV2Native", function () {
         const routerAddress = "0x24733D6EBdF1DA157d2A491149e316830443FC00"
         strategy = await upgrades.deployProxy(Strategy,
             [signers[0].address, ZERO_ADDR, ZERO_ADDR, routerAddress], {
-                initializer: 'initialize',
-                kind: 'uups',
-                unsafeAllow:["delegatecall"]
-            }
+            initializer: 'initialize',
+            kind: 'uups',
+            unsafeAllow: ["delegatecall"]
+        }
         ) as CurveConvexStrategyV2Native
         let wrappedEther = await ethers.getContractAt("contracts/interfaces/IWrappedEther.sol:IWrappedEther", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2") as IWrappedEther
-        await wrappedEther.deposit({value: ethers.utils.parseEther("100")})
+        await wrappedEther.deposit({ value: ethers.utils.parseEther("100") })
     });
 
     it("Should check initial contract state", async () => {
@@ -66,19 +66,19 @@ describe("CurveConvexStrategyV2Native", function () {
         const crvRewards = "0xD533a949740bb3306d119CC777fa900bA034cd52";
         const adminRole = await strategy.DEFAULT_ADMIN_ROLE();
 
-        expect(await strategy.cvxBooster()).to.be.equal(cvxBooster);
-        expect(await strategy.exchange()).to.be.equal(exchange);
-        expect(await strategy.cvxRewards()).to.be.equal(cvxRewards);
-        expect(await strategy.crvRewards()).to.be.equal(crvRewards);
+        expect(await strategy.CVX_BOOSTER()).to.be.equal(cvxBooster);
+        expect(await strategy.EXCHANGE()).to.be.equal(exchange);
+        expect(await strategy.CVX_REWARDS()).to.be.equal(cvxRewards);
+        expect(await strategy.CRV_REWARDS()).to.be.equal(crvRewards);
         expect(await strategy.hasRole(adminRole, signers[0].address)).to.be.true;
     });
 
-  
+
 
     it("Should check correct encoders/decoders", async () => {
         let uint256 = ethers.utils.toUtf8Bytes("uint256");
         let int128 = ethers.utils.toUtf8Bytes("int128");
-    
+
         const curvePool = "0x0000000000000000000000000000000000000001";
         const poolToken = "0x0000000000000000000000000000000000000002";
         const poolSize = 2
@@ -92,7 +92,7 @@ describe("CurveConvexStrategyV2Native", function () {
         )
         const exit = defaultAbiCoder.encode(
             ["address", "address", "address", "bytes", "uint8", "uint256"],
-            [curvePool, poolToken, lpToken, int128,tokenIndexInCurve, convexPoolId]
+            [curvePool, poolToken, lpToken, int128, tokenIndexInCurve, convexPoolId]
         );
 
         expect(await strategy.encodeEntryParams(
@@ -186,15 +186,15 @@ describe("CurveConvexStrategyV2Native", function () {
             curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, poolSize, tokenIndexInCurve, convexPoolId
         );
         const exitData = await strategy.encodeExitParams(
-            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, int128,tokenIndexInCurve, convexPoolId
+            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, int128, tokenIndexInCurve, convexPoolId
         );
 
         await poolToken.transfer(strategy.address, amount);
         await strategy.invest(entryData, amount);
 
-        const crvBefore =await crv.balanceOf(signers[0].address)
+        const crvBefore = await crv.balanceOf(signers[0].address)
         const cvxBefore = await cvx.balanceOf(signers[0].address)
-  
+
         const balanceBefore = await exitToken.balanceOf(signers[0].address);
         await strategy.exitAll(exitData, 10000, exitToken.address, signers[0].address, false, false);
         const balanceAfter = await exitToken.balanceOf(signers[0].address);
@@ -222,14 +222,14 @@ describe("CurveConvexStrategyV2Native", function () {
         const int128 = ethers.utils.toUtf8Bytes("int128")
         const lpToken = await ethers.getContractAt("IERC20Metadata", "0x06325440d014e39736583c165c2963ba99faf14e")
 
-        const crvBefore =await crv.balanceOf(signers[0].address)
+        const crvBefore = await crv.balanceOf(signers[0].address)
         const cvxBefore = await cvx.balanceOf(signers[0].address)
-  
+
         const entryData = await strategy.encodeEntryParams(
             curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, poolSize, tokenIndexInCurve, convexPoolId
         );
         const exitData = await strategy.encodeExitParams(
-            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, int128,tokenIndexInCurve, convexPoolId
+            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, int128, tokenIndexInCurve, convexPoolId
         );
 
         await poolToken.transfer(strategy.address, amount);
@@ -238,7 +238,6 @@ describe("CurveConvexStrategyV2Native", function () {
         const balanceBefore = await exitToken.balanceOf(signers[0].address);
         await strategy.exitAll(exitData, 10000, exitToken.address, signers[0].address, false, false);
         const balanceAfter = await exitToken.balanceOf(signers[0].address);
-
         expect(balanceAfter).to.be.gt(balanceBefore);
         expect(await poolToken.balanceOf(strategy.address)).to.be.equal(0);
         expect(await exitToken.balanceOf(strategy.address)).to.be.equal(0);
@@ -262,10 +261,10 @@ describe("CurveConvexStrategyV2Native", function () {
         const rewardPool = await ethers.getContractAt("contracts/interfaces/ICvxBaseRewardPool.sol:ICvxBaseRewardPool", poolInfo.crvRewards)
         const int128 = ethers.utils.toUtf8Bytes("int128")
         const entryData = await strategy.encodeEntryParams(
-            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",lpToken.address, poolSize, tokenIndexInCurve, convexPoolId
+            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, poolSize, tokenIndexInCurve, convexPoolId
         );
         const exitData = await strategy.encodeExitParams(
-            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, int128,tokenIndexInCurve, convexPoolId
+            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, int128, tokenIndexInCurve, convexPoolId
         );
 
         await poolToken.transfer(strategy.address, amount);
@@ -305,7 +304,7 @@ describe("CurveConvexStrategyV2Native", function () {
         const int128 = ethers.utils.toUtf8Bytes("int128")
 
         const entryData = await strategy.encodeEntryParams(
-            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",lpToken.address, poolSize, tokenIndexInCurve, convexPoolId
+            curvePool, "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", lpToken.address, poolSize, tokenIndexInCurve, convexPoolId
         );
         const exitData = await strategy.encodeRewardsParams(
             lpToken.address, convexPoolId, 0
@@ -326,7 +325,7 @@ describe("CurveConvexStrategyV2Native", function () {
         expect(coinBalanceAfter).to.be.gt(coinBalanceBefore);
     })
 
-  
+
     it("Should execute mulicall", async () => {
         const token = weth;
         const amount = parseUnits("200.0", await token.decimals());

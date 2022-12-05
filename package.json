@@ -42,8 +42,8 @@
     "typescript": "^4.5.4"
   },
   "scripts": {
-    "solhint": "npx solhint -f table contracts/**/*.sol",
-    "prettier:solidity": "npx prettier --write contracts/**/*.sol",
+    "solhint": "solhint -f table contracts/**/*.sol",
+    "prettier:solidity": "prettier --write contracts/**/*.sol",
     "prepare": "husky install"
   }
 }

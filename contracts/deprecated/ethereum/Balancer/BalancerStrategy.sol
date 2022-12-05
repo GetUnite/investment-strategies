@@ -25,11 +25,7 @@ contract BalancerStrategy is AccessControl, IAlluoStrategy, IBalancerStructs {
         IExchange(0x29c66CF57a03d41Cfe6d9ecB6883aa0E2AbA21Ec);
     uint8 public constant unwindDecimals = 2;
 
-    constructor(
-        address voteExecutor,
-        address gnosis,
-        bool isTesting
-    ) {
+    constructor(address voteExecutor, address gnosis, bool isTesting) {
         if (isTesting) _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         else {
             require(voteExecutor.isContract(), "BalancerStrategy: 1!contract");
@@ -39,11 +35,10 @@ contract BalancerStrategy is AccessControl, IAlluoStrategy, IBalancerStructs {
         }
     }
 
-    function invest(bytes calldata data, uint256 amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        returns (bytes memory)
-    {
+    function invest(
+        bytes calldata data,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bytes memory) {
         (bytes32 poolId, uint8 tokenIndex, bool stake) = decodeEntryParams(
             data
         );
@@ -100,12 +95,12 @@ contract BalancerStrategy is AccessControl, IAlluoStrategy, IBalancerStructs {
             ILiquidityGauge gauge = gaugeFactory.getPoolGauge(lp);
             lpAmount =
                 (gauge.balanceOf(address(this)) * unwindPercent) /
-                (10**(2 + unwindDecimals));
+                (10 ** (2 + unwindDecimals));
             gauge.withdraw(lpAmount, true);
         } else {
             lpAmount =
                 (IERC20(lp).balanceOf(address(this)) * unwindPercent) /
-                (10**(2 + unwindDecimals));
+                (10 ** (2 + unwindDecimals));
         }
 
         uint256[] memory amounts = new uint256[](tokens.length);
@@ -167,28 +162,16 @@ contract BalancerStrategy is AccessControl, IAlluoStrategy, IBalancerStructs {
         return abi.encode(poolId, tokenId, stake);
     }
 
-    function decodeEntryParams(bytes calldata data)
-        public
-        pure
-        returns (
-            bytes32,
-            uint8,
-            bool
-        )
-    {
+    function decodeEntryParams(
+        bytes calldata data
+    ) public pure returns (bytes32, uint8, bool) {
         require(data.length == 32 * 3, "BalancerStrategy: length en");
         return abi.decode(data, (bytes32, uint8, bool));
     }
 
-    function decodeExitParams(bytes calldata data)
-        public
-        pure
-        returns (
-            bytes32,
-            uint8,
-            bool
-        )
-    {
+    function decodeExitParams(
+        bytes calldata data
+    ) public pure returns (bytes32, uint8, bool) {
         require(data.length == 32 * 3, "BalancerStrategy: length ex");
         return abi.decode(data, (bytes32, uint8, bool));
     }

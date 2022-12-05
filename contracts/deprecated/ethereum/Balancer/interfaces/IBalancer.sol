@@ -11,7 +11,9 @@ interface IBalancer is IBalancerStructs {
         JoinPoolRequest memory request
     ) external payable;
 
-    function getPoolTokens(bytes32 poolId)
+    function getPoolTokens(
+        bytes32 poolId
+    )
         external
         view
         returns (
@@ -20,10 +22,9 @@ interface IBalancer is IBalancerStructs {
             uint256 lastChangeBlock
         );
 
-    function getPool(bytes32 poolId)
-        external
-        view
-        returns (address, PoolSpecialization);
+    function getPool(
+        bytes32 poolId
+    ) external view returns (address, PoolSpecialization);
 
     function exitPool(
         bytes32 poolId,
