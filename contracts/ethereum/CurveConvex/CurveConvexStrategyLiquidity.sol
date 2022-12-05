@@ -17,7 +17,6 @@ contract CurveConvexStrategyTest is AccessControl, IAlluoStrategy {
     using SafeERC20 for IERC20;
     // For polygon remember to change these constants
 
-
     ICvxBooster public constant cvxBooster =
         ICvxBooster(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
     IExchange public constant exchange =
@@ -31,7 +30,7 @@ contract CurveConvexStrategyTest is AccessControl, IAlluoStrategy {
 
     IWrappedEther public constant wETH =
         IWrappedEther(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-        
+
     constructor(
         address voteExecutor,
         address gnosis,
@@ -49,8 +48,7 @@ contract CurveConvexStrategyTest is AccessControl, IAlluoStrategy {
         }
     }
 
-    receive() external payable {
-    }
+    receive() external payable {}
 
     function invest(bytes calldata data, uint256 amount)
         external
@@ -66,7 +64,7 @@ contract CurveConvexStrategyTest is AccessControl, IAlluoStrategy {
             uint256 poolId
         ) = decodeEntryParams(data);
         uint256 valueETH;
-        
+
         if (address(poolToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             wETH.withdraw(amount);
             valueETH = amount;
@@ -76,15 +74,14 @@ contract CurveConvexStrategyTest is AccessControl, IAlluoStrategy {
         uint256[4] memory fourPoolTokensAmount;
         fourPoolTokensAmount[tokenIndexInCurve] = amount;
         bytes memory curveCall;
-      
 
-      if (poolSize == 2 ) {
+        if (poolSize == 2) {
             curveCall = abi.encodeWithSelector(
                 0x0b4c7e4d,
                 uint256[2]([fourPoolTokensAmount[0], fourPoolTokensAmount[1]]),
                 0
             );
-        }  else if (poolSize == 3) {
+        } else if (poolSize == 3) {
             curveCall = abi.encodeWithSelector(
                 0x4515cef3,
                 uint256[3](
@@ -126,7 +123,6 @@ contract CurveConvexStrategyTest is AccessControl, IAlluoStrategy {
             );
     }
 
-    
     function exitAll(
         bytes calldata data,
         uint256 unwindPercent,
@@ -146,29 +142,38 @@ contract CurveConvexStrategyTest is AccessControl, IAlluoStrategy {
         if (convexPoolId != type(uint256).max) {
             ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
             lpAmount =
-                (rewards.balanceOf(address(this)) * unwindPercent) / 10000;
+                (rewards.balanceOf(address(this)) * unwindPercent) /
+                10000;
 
             // withdraw Curve LPs and all rewards
             rewards.withdrawAndUnwrap(lpAmount, true);
         } else {
-            lpAmount = lpToken.balanceOf(address(this)) * unwindPercent / 10000;
+            lpAmount =
+                (lpToken.balanceOf(address(this)) * unwindPercent) /
+                10000;
         }
 
         if (lpAmount == 0) return;
         // exit with coin that we used for entry
         bytes memory curveCall = abi.encodeWithSignature(
-            string(bytes.concat("remove_liquidity_one_coin(uint256,", typeOfTokenIndex,",uint256)")),
+            string(
+                bytes.concat(
+                    "remove_liquidity_one_coin(uint256,",
+                    typeOfTokenIndex,
+                    ",uint256)"
+                )
+            ),
             lpAmount,
             tokenIndexInCurve,
             0
         );
-        uint256  valueETHBefore = address(this).balance;
+        uint256 valueETHBefore = address(this).balance;
         curvePool.functionCall(curveCall);
         uint256 ethDelta = address(this).balance - valueETHBefore;
         if (ethDelta > 0) {
             wETH.deposit{value: ethDelta}();
             poolToken = IERC20(address(wETH));
-        } 
+        }
         // execute exchanges and transfer all tokens to receiver
         exchangeAll(poolToken, IERC20(outputCoin));
         manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
@@ -266,7 +271,8 @@ contract CurveConvexStrategyTest is AccessControl, IAlluoStrategy {
         )
     {
         require(data.length == 32 * 8, "CurveConvexStrategy: length ex");
-        return abi.decode(data, (address, IERC20, IERC20, bytes, uint8, uint256));
+        return
+            abi.decode(data, (address, IERC20, IERC20, bytes, uint8, uint256));
     }
 
     function exchangeAll(IERC20 fromCoin, IERC20 toCoin) private {
