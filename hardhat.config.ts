@@ -2,13 +2,13 @@ import * as dotenv from "dotenv";
 
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
+import '@openzeppelin/hardhat-upgrades';
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import 'hardhat-contract-sizer'
 import './tasks'
-//import '@openzeppelin/hardhat-upgrades';
 
 dotenv.config();
 

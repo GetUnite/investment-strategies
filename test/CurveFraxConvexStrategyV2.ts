@@ -1,22 +1,21 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
+
 import { expect } from "chai";
-import { CurveFraxConvexStrategyNew } from "../typechain/CurveFraxConvexStrategyNew";
-import { ILocking, IUSDC } from "../typechain";
+import { IConvexStaking, ILocking, IUSDC } from "../typechain";
+import { CurveFraxConvexStrategyV2 } from "../typechain/CurveFraxConvexStrategyV2";
 
 // import "../contracts/interfaces/ICurvePool.sol";
 
 describe("CurveConvexStrategy", function () {
 
-    let CurveFraxConvexStrategyNew;
-    let strategy: CurveFraxConvexStrategyNew;
+    let CurveFraxConvexStrategyV2;
+    let strategy: CurveFraxConvexStrategyV2;
 
     let usdc: IUSDC;
     let locking: ILocking;
+    let staking: IConvexStaking;
 
-
-    // let usdc: IERC20Metadata, usdt: IERC20Metadata, frax: IERC20Metadata, crv: IERC20Metadata, cvx: IERC20Metadata, weth: IERC20Metadata;
-    // let cvxBooster: ICvxBooster;
     // let exchange: IExchange;
 
     const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
@@ -27,7 +26,6 @@ describe("CurveConvexStrategy", function () {
     const EIGHT_DAYS_IN_SECODS = 60 * 60 * 24 * 8;
 
     const amountUSDC = ethers.utils.parseUnits("10", 6);
-
 
     async function investTimeTravel() {
         return ethers.provider.send("evm_increaseTime", []);
@@ -46,11 +44,15 @@ describe("CurveConvexStrategy", function () {
 
         usdc = await ethers.getContractAt("IUSDC", usdcAddress);
         locking = await ethers.getContractAt("ILocking", Locking);
-        staking = await ethers.getContractAt("")
+        staking = await ethers.getContractAt("IConvexStaking", Staking);
 
-        CurveFraxConvexStrategyNew = await ethers.getContractFactory("CurveFraxConvexStrategyNew");
-        strategy = await CurveFraxConvexStrategyNew.deploy(ethers.constants.AddressZero, ethers.constants.AddressZero, true) as CurveFraxConvexStrategyNew;
-        console.log("Deployed at", strategy.address);
+
+        const signer = await getImpersonatedSigner('0x2e91728aF3a54aCDCeD7938fE9016aE2cc5948C9');
+
+        CurveFraxConvexStrategyV2 = await ethers.getContractFactory("CurveFraxConvexStrategyV2");
+        strategy = await upgrades.deployProxy(CurveFraxConvexStrategyV2, [signer.address, signer.address, signer.address, signer.address], {
+            initializer: "initialize", kind: 'uups'
+        }) as CurveFraxConvexStrategyV2;
 
     });
 
@@ -62,15 +64,16 @@ describe("CurveConvexStrategy", function () {
     it("Should invest", async () => {
 
         const signer = await getImpersonatedSigner('0x2e91728aF3a54aCDCeD7938fE9016aE2cc5948C9');
+
         const entryData = await strategy.encodeEntryParams(
-            curvePool, LPTokenCurvePool, usdcAddress, 2, 1, 100, Staking, Locking, EIGHT_DAYS_IN_SECODS
+            curvePool, LPTokenCurvePool, usdcAddress, 2, 1, Staking, Locking, EIGHT_DAYS_IN_SECODS
         )
 
         let signerUsdcBalanceBefore = await usdc.balanceOf(signer.address);
         let strategyUsdcBalanceBefore = await usdc.balanceOf(strategy.address);
 
         await usdc.connect(signer).transfer(strategy.address, amountUSDC);
-        const data = await strategy.callStatic.invest(entryData, amountUSDC);
+        // const data = await strategy.callStatic.invest(entryData, amountUSDC);
         await strategy.invest(entryData, amountUSDC);
 
         let signerUsdcBalanceAfter = await usdc.balanceOf(signer.address);
@@ -78,9 +81,6 @@ describe("CurveConvexStrategy", function () {
 
         expect(signerUsdcBalanceAfter).to.be.eq(signerUsdcBalanceBefore.sub(amountUSDC));
         expect(strategyUsdcBalanceAfter).to.be.eq(0);
-
-        // console.log('locked staked of signer ', await locking.lockedStakesOf(strategy.address));
-        // console.log('data returned after investing: ', data);
 
     });
 
@@ -93,13 +93,15 @@ describe("CurveConvexStrategy", function () {
 
         const signer = await getImpersonatedSigner('0x2e91728aF3a54aCDCeD7938fE9016aE2cc5948C9');
         const entryData = await strategy.encodeEntryParams(
-            curvePool, LPTokenCurvePool, usdcAddress, 2, 1, 100, Staking, Locking, EIGHT_DAYS_IN_SECODS
+            curvePool, LPTokenCurvePool, usdcAddress, 2, 1, Staking, Locking, EIGHT_DAYS_IN_SECODS
         )
 
         let signerUsdcBalanceBefore = await usdc.balanceOf(signer.address);
         let strategyUsdcBalanceBefore = await usdc.balanceOf(strategy.address);
-        let strategyStakingTokenBalanceBefore = await locking.staking
+        // let strategyStakingTokenBalanceBefore = await locking.stakingToken()
 
+
+        // check that before investing all rewards balances are zero
         let rewardTokens = await locking.getAllRewardTokens();
         for (let i = 0; i < rewardTokens.length; i++) {
             let rewardsToken = await ethers.getContractAt('IERC20', rewardTokens[i]);
@@ -109,16 +111,22 @@ describe("CurveConvexStrategy", function () {
         }
 
         await usdc.connect(signer).transfer(strategy.address, amountUSDC);
-        const data = await strategy.callStatic.invest(entryData, amountUSDC);
+        // const data = await strategy.callStatic.invest(entryData, amountUSDC);
         await strategy.invest(entryData, amountUSDC);
 
         await ethers.provider.send('evm_increaseTime', [60 * 60 * 24 * 9]);
 
-        const balanceBefore = await locking.lockedStakesOf(strategy.address);
-        await strategy.exitAll(data, 10000, usdcAddress, signer.address, true);
-        const balanceAfter = await locking.lockedStakesOf(strategy.address);
+        const balanceBeforeExit = await locking.lockedStakesOf(strategy.address);
+        console.log(balanceBeforeExit);
+        const exitData = await strategy.encodeExitParams(curvePool, usdcAddress, LPTokenCurvePool, 2, Locking);
+        await strategy.exitAll(exitData, 10000, usdcAddress, signer.address, true, true);
+        const balanceAfterExit = await locking.lockedStakesOf(strategy.address);
+        console.log('balance after exit: ', balanceAfterExit);
 
-        console.log(balanceBefore, balanceAfter);
+        console.log('balance USCD of signer: ', await usdc.balanceOf(signer.address));
+        expect(await usdc.balanceOf(signer.address)).to.be.eq(amountUSDC);
+
+        // check that beafterfore investing all rewards balances are NOT zero
         for (let i = 0; i < rewardTokens.length; i++) {
             let rewardsToken = await ethers.getContractAt('IERC20', rewardTokens[i]);
             console.log('Balance of ', rewardsToken.address, ' after exiting: ', await rewardsToken.balanceOf(strategy.address));
