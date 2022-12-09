@@ -8,7 +8,7 @@ describe("CurveConvexStrategy", function () {
     let strategy: CurveFraxConvexStrategy;
     let signers: SignerWithAddress[];
 
-    let usdc: IERC20Metadata, usdt: IERC20Metadata, frax: IERC20Metadata, crv: IERC20Metadata, cvx: IERC20Metadata, weth: IERC20Metadata;
+    let usdc: IERC20Metadata, usdt: IERC20Metadata, frax: IERC20Metadata, crv: IERC20Metadata, cvx: IERC20Metadata, weth: IERC20Metadata; poolRewards: IERC20Metadata;
     let cvxBooster: ICvxBooster;
     let exchange: IExchange;
 
@@ -26,7 +26,8 @@ describe("CurveConvexStrategy", function () {
         frax = await ethers.getContractAt('IERC20Metadata', '0x853d955acef822db058eb8505911ed77f175b99e');
         crv = await ethers.getContractAt("IERC20Metadata", "0xD533a949740bb3306d119CC777fa900bA034cd52");
         cvx = await ethers.getContractAt("IERC20Metadata", "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B");
-        weth = await ethers.getContractAt("IERC20Metadata", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
+        weth = await ethers.getContractAt("IERC20Metadata", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+        poolRewards = await ethers.getContractAt("IERC20Metadata", "0x7e880867363A7e321f5d260Cade2B0Bb2F717B02");
         cvxBooster = await ethers.getContractAt("ICvxBooster", "0xF403C135812408BFbE8713b5A23a04b3D48AAE31");
         exchange = await ethers.getContractAt("IExchange", "0x29c66CF57a03d41Cfe6d9ecB6883aa0E2AbA21Ec")
 
@@ -44,7 +45,7 @@ describe("CurveConvexStrategy", function () {
                     //you can fork from last block by commenting next line
                     blockNumber: 15475317,
                 },
-            }, ],
+            },],
         });
     });
 
@@ -52,7 +53,7 @@ describe("CurveConvexStrategy", function () {
         const Strategy = await ethers.getContractFactory("CurveFraxConvexStrategy") as CurveFraxConvexStrategy__factory;
         strategy = await Strategy.deploy(ZERO_ADDR, ZERO_ADDR, true);
         await exchange.exchange(
-            ZERO_ADDR, frax.address, parseEther("100"), 0, { value:  parseEther("100")})
+            ZERO_ADDR, frax.address, parseEther("100"), 0, { value: parseEther("100") })
     });
 
     it("Should check initial contract state", async () => {
@@ -214,7 +215,7 @@ describe("CurveConvexStrategy", function () {
         const strategy2 = await ethers.getContractFactory("CurveFraxConvexStrategy") as CurveFraxConvexStrategy__factory;
         strategy = await strategy2.connect(signers[2]).deploy(ZERO_ADDR, ZERO_ADDR, true);
         await exchange.connect(signers[2]).exchange(
-            ZERO_ADDR, frax.address, parseEther("100"), 0, { value:  parseEther("100")})
+            ZERO_ADDR, frax.address, parseEther("100"), 0, { value: parseEther("100") })
 
 
         const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
@@ -242,16 +243,16 @@ describe("CurveConvexStrategy", function () {
         const tx = await strategy.connect(signers[2]).invest(entryData, amount);
         const receipt = await tx.wait()
 
-        let abi = [ "event Locked(bytes32 data)" ];
+        let abi = ["event Locked(bytes32 data)"];
         let iface = new ethers.utils.Interface(abi);
-        let log = iface.parseLog(receipt.logs[receipt.logs.length-1]); 
+        let log = iface.parseLog(receipt.logs[receipt.logs.length - 1]);
 
-        const kek_id =log.args[0]
+        const kek_id = log.args[0]
 
         const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, lpToken.address, tokenIndexInCurve, convexPoolId, fraxPool, kek_id)
         await ethers.provider.send("evm_increaseTime", [1000000])
 
-        
+
         const balanceBefore = await frax.balanceOf(signers[0].address);
         await strategy.connect(signers[2]).exitOnlyRewards(exitData, frax.address, signers[0].address, true);
         const balanceAfter = await frax.balanceOf(signers[0].address);
@@ -293,22 +294,22 @@ describe("CurveConvexStrategy", function () {
         const tx = await strategy.invest(entryData, amount);
         const receipt = await tx.wait()
 
-        let abi = [ "event Locked(bytes32 data)" ];
+        let abi = ["event Locked(bytes32 data)"];
         let iface = new ethers.utils.Interface(abi);
-        let log = iface.parseLog(receipt.logs[receipt.logs.length-1]); 
+        let log = iface.parseLog(receipt.logs[receipt.logs.length - 1]);
 
-        const kek_id =log.args[0]
+        const kek_id = log.args[0]
 
         const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, lpToken.address, tokenIndexInCurve, convexPoolId, fraxPool, kek_id)
         await ethers.provider.send("evm_increaseTime", [900000])
 
-        
+
         const balanceBefore = await frax.balanceOf(signers[0].address);
         await strategy.exitOnlyRewards(exitData, frax.address, signers[0].address, false);
         const balanceAfter = await frax.balanceOf(signers[0].address);
 
         expect(balanceAfter).to.be.equal(balanceBefore);
-      
+
         expect(await crv.balanceOf(strategy.address)).to.be.equal(0);
         expect(await cvx.balanceOf(strategy.address)).to.be.equal(0);
         expect(await crv.balanceOf(signers[0].address)).to.be.gt(0);
@@ -334,7 +335,7 @@ describe("CurveConvexStrategy", function () {
 
         const stakeToken = "0x8a53ee42FB458D4897e15cc7dEa3F75D0F1c3475"
         const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199"
-        const duration = 694000 *2
+        const duration = 694000 * 2
         const entryData = await strategy.encodeEntryParams(
             curvePool, lpToken.address, poolToken.address, poolSize, tokenIndexInCurve, convexPoolId, stakeToken, fraxPool, duration
         )
@@ -344,16 +345,16 @@ describe("CurveConvexStrategy", function () {
         const tx = await strategy.invest(entryData, amount);
         const receipt = await tx.wait()
 
-        let abi = [ "event Locked(bytes32 data)" ];
+        let abi = ["event Locked(bytes32 data)"];
         let iface = new ethers.utils.Interface(abi);
-        let log = iface.parseLog(receipt.logs[receipt.logs.length-1]); 
+        let log = iface.parseLog(receipt.logs[receipt.logs.length - 1]);
 
-        const kek_id =log.args[0]
+        const kek_id = log.args[0]
 
         const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, lpToken.address, tokenIndexInCurve, convexPoolId, fraxPool, kek_id)
-        await ethers.provider.send("evm_increaseTime", [900000*2])
+        await ethers.provider.send("evm_increaseTime", [900000 * 2])
 
-        
+
         const balanceBefore = await frax.balanceOf(signers[0].address);
         await strategy.exitAll(exitData, 10000, frax.address, signers[0].address, true);
         const balanceAfter = await frax.balanceOf(signers[0].address);

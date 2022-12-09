@@ -152,7 +152,7 @@ contract CurveFraxConvexStrategyV2 is
         if (lockedstakes.length == 1) {
             bytes32 kek_id = lockedstakes[0].kek_id;
             IFraxFarmERC20(fraxPool).lockAdditional(kek_id, fraxLpAmount);
-        } else if (lockedstakes.length == 0) {
+        } else {
             bytes32 kek_id;
             kek_id = IFraxFarmERC20(fraxPool).stakeLocked(
                 fraxLpAmount,
@@ -199,7 +199,7 @@ contract CurveFraxConvexStrategyV2 is
         _manageFraxRewards(fraxPool, swapRewards, outputCoin, receiver);
 
         // Get rewards from Convex
-        IConvexWrapper(stakeToken).getReward(address(this));
+        IConvexWrapper(stakeToken).getReward(address(this), address(this));
 
         // withdraw staking Lp tokens from frax pool
         uint256 lpAmount;
@@ -235,7 +235,7 @@ contract CurveFraxConvexStrategyV2 is
         }
     }
 
-    /// @notice Manages all the rewards received from frax pool
+    /// @notice Only exchange to output coin OR send to receiver
     function _manageFraxRewards(
         address fraxPool,
         bool swapRewards,
@@ -272,7 +272,7 @@ contract CurveFraxConvexStrategyV2 is
         // Get rewards from Convex
         address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
         IConvexWrapper(stakeToken).getReward(address(this));
-        withdrawRewards(outputCoin);
+        _manageRewardsAndWithdraw(swapRewards, IERC20(outputCoin), receiver);
     }
 
     /// @notice Calculates the current LP position in Convex in terms of a specific asset and claims rewards
@@ -289,57 +289,17 @@ contract CurveFraxConvexStrategyV2 is
             uint256 assetId
         ) = decodeRewardsParams(data);
 
-        // calculate frax rewards
-        IFraxFarmERC20(fraxPool).getReward(address(this));
-
-        // uint256 fraxRewards;
-        // address[] memory fraxPoolRewards = IFraxFarmERC20(fraxPool)
-        //     .getAllRewardTokens();
-        // for (uint256 i; i < fraxPoolRewards.length; i++) {
-        //     (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(
-        //         priceFeed
-        //     ).getPriceOfAmount(
-        //             address(fraxPoolRewards[i]),
-        //             IERC20(fraxPoolRewards[i]).balanceOf(address(this)),
-        //             assetId
-        //         );
-        //     fraxRewards += IPriceFeedRouterV2(priceFeed).decimalsConverter(
-        //         fiatPrice,
-        //         fiatDecimals,
-        //         18
-        //     );
-        // }
-
-        // calculate curve LP tokens and convex rewards
-        // TODO: add calculation of rewards into the current position
+        uint256 liquidity = IFraxFarmERC20(fraxPool).lockedLiquidityOf(
+            address(this)
+        );
         address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
-        uint256 convexPoolId = IConvexWrapper(stakeToken).convexPoolId();
-        // uint256 curveRewards;
-        // if (convexPoolId != type(uint256).max) {
-        //     ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
-        //     rewards.getReward(address(this), true);
-        //     (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(priceFeed)
-        //     .getPriceOfAmount(address(rewards), lpAmount, assetId);
-        //     curveRewards += IPriceFeedRouterV2(priceFeed).decimalsConverter(
-        //         fiatPrice,
-        //         fiatDecimals,
-        //         18
-        //     );
-        // }
 
-        // lpAmount = rewards.balanceOf(address(this));
-
-        uint256 lpAmount;
-        if (convexPoolId != type(uint256).max) {
-            ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
-            lpAmount = rewards.balanceOf(address(this)); // this will not give us the current LP position
-            rewards.getReward(address(this), true);
-        } else {
-            lpAmount = IERC20(stakeToken).balanceOf(address(this));
-        }
+        // claim rewards
+        IFraxFarmERC20(fraxPool).getReward(address(this));
+        IConvexWrapper(stakeToken).getReward(address(this));
 
         (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(priceFeed)
-            .getPriceOfAmount(address(lpToken), lpAmount, assetId);
+            .getPriceOfAmount(address(lpToken), liquidity, assetId);
 
         return
             IPriceFeedRouterV2(priceFeed).decimalsConverter(
@@ -364,16 +324,9 @@ contract CurveFraxConvexStrategyV2 is
             uint256 assetId
         ) = decodeRewardsParams(data);
 
-        uint256 lpAmount;
-        address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
-        uint256 convexPoolId = IConvexWrapper(stakeToken).convexPoolId();
-
-        if (convexPoolId != type(uint256).max) {
-            ICvxBaseRewardPool rewards = getCvxRewardPool(convexPoolId);
-            lpAmount = rewards.balanceOf(address(this));
-        } else {
-            lpAmount = IERC20(lpToken).balanceOf(address(this));
-        }
+        uint256 lpAmount = IFraxFarmERC20(fraxPool).lockedLiquidityOf(
+            address(this)
+        );
         (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(priceFeed)
             .getPriceOfAmount(address(lpToken), lpAmount, assetId);
         return
@@ -436,15 +389,6 @@ contract CurveFraxConvexStrategyV2 is
         for (uint256 i = 0; i < length; i++) {
             destinations[i].functionCall(calldatas[i]);
         }
-    }
-
-    function getCvxRewardPool(uint256 poolId)
-        private
-        view
-        returns (ICvxBaseRewardPool)
-    {
-        (, , , address pool, , ) = CVX_BOOSTER.poolInfo(poolId);
-        return ICvxBaseRewardPool(pool);
     }
 
     function encodeEntryParams(
@@ -529,6 +473,22 @@ contract CurveFraxConvexStrategyV2 is
         require(data.length == 32 * 3, "FraxConvexStrategyV2: length ex");
         return abi.decode(data, (address, address, uint256));
     }
+
+    function getCvxRewardPool(uint256 poolId)
+        private
+        view
+        returns (ICvxBaseRewardPool)
+    {
+        (, , , address pool, , ) = CVX_BOOSTER.poolInfo(poolId);
+        return ICvxBaseRewardPool(pool);
+    }
+
+    // function getCvxLpToken(
+    //     uint256 poolId
+    // ) private view returns (IERC20) {
+    //     (address lpToken, , , , , ) = CVX_BOOSTER.poolInfo(poolId);
+    //     return IERC20(lpToken);
+    // }
 
     function _authorizeUpgrade(address newImplementation)
         internal
