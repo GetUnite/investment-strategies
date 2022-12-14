@@ -44,7 +44,6 @@ contract CurveFraxConvexStrategyV2 is
         IERC20(0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0);
 
     bool public upgradeStatus;
-    uint8 public constant unwindDecimals = 2;
 
     mapping(address => bytes32) public kek_ids;
 
@@ -233,6 +232,13 @@ contract CurveFraxConvexStrategyV2 is
             );
         }
     }
+
+    /// @notice Only claims rewards and swaps them to the output coin
+    /// @dev Used when exit delta is 0.
+    /// @param data Contains Convex data
+    /// @param outputCoin Token to receive rewards in.
+    /// @param receiver Recipient of the rewards.
+    /// @param swapRewards Whether to swap rewards into the output coin.
 
     function exitOnlyRewards(
         bytes calldata data,

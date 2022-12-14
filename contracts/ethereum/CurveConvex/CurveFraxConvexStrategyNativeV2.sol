@@ -19,7 +19,7 @@ import {IFraxFarmERC20} from "./interfaces/IFraxFarmERC20.sol";
 import {ICurvePool} from "../../interfaces/ICurvePool.sol";
 import {IConvexWrapper} from "./interfaces/IConvexWrapper.sol";
 
-contract CurveConvexStrategyNativeV2 is
+contract CurveFraxConvexStrategyV2 is
     IAlluoStrategyV2,
     Initializable,
     AccessControlUpgradeable,
@@ -43,6 +43,7 @@ contract CurveConvexStrategyNativeV2 is
         IERC20(0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0);
     IWrappedEther public constant WETH =
         IWrappedEther(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+
     bool public upgradeStatus;
     address public priceFeed;
     mapping(address => bytes32) public kek_ids;
@@ -99,7 +100,10 @@ contract CurveConvexStrategyNativeV2 is
             uint256 duration
         ) = decodeEntryParams(data);
 
-        if (address(poolToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+        if (
+            ICurvePool(curvePool).coins(tokenIndexInCurve) ==
+            0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+        ) {
             WETH.withdraw(amount);
         } else {
             IERC20(poolToken).safeIncreaseAllowance(curvePool, amount);
@@ -138,7 +142,15 @@ contract CurveConvexStrategyNativeV2 is
         }
 
         // execute call - should send eth
-        curvePool.functionCallWithValue(curveCall, amount);
+
+        if (
+            ICurvePool(curvePool).coins(tokenIndexInCurve) ==
+            0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+        ) {
+            curvePool.functionCallWithValue(curveCall, amount);
+        } else {
+            curvePool.functionCall(curveCall);
+        }
 
         address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
         address crvLpToken = ICurvePool(curvePool).lp_token();
@@ -172,6 +184,17 @@ contract CurveConvexStrategyNativeV2 is
         }
 
         emit Locked(address(this), fraxPool, kek_ids[fraxPool]);
+    }
+
+    function investLonger(address _fraxpool, uint256 newEndingTs)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(
+            kek_ids[_fraxpool] != 0,
+            "CurveConvexStrategyNativeV2: !invested"
+        );
+        IFraxFarmERC20(_fraxpool).lockLonger(kek_ids[_fraxpool], newEndingTs);
     }
 
     /// @notice Exits a specific position with a percentage, with additional options
@@ -223,7 +246,10 @@ contract CurveConvexStrategyNativeV2 is
         );
 
         // Prevent stack too deep errors.
-        {
+        if (
+            ICurvePool(curvePool).coins(tokenIndexInCurve) ==
+            0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+        ) {
             uint256 valueETH = address(this).balance;
             curvePool.functionCall(curveCall);
             valueETH = address(this).balance - valueETH;
@@ -231,6 +257,8 @@ contract CurveConvexStrategyNativeV2 is
                 IWrappedEther(WETH).deposit{value: valueETH}();
                 poolToken = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
             }
+        } else {
+            curvePool.functionCall(curveCall);
         }
 
         // execute exchanges and transfer all tokens to receiver
@@ -378,7 +406,6 @@ contract CurveConvexStrategyNativeV2 is
     /// @param swapRewards bool to swap or not
     /// @param outputCoin IERC20
     /// @param receiver receiver of the funds
-    //TODO: withdraw FXS rewards
     function _manageRewardsAndWithdraw(
         bool swapRewards,
         IERC20 outputCoin,

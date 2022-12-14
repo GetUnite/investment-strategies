@@ -52,7 +52,7 @@ describe("Automated strategy execution", function () {
             params: [{
                 forking: {
                     enabled: true,
-                    jsonRpcUrl: "https://mainnet.gateway.tenderly.co/2jzMgDLzHFjAwvDkYqdzd4",
+                    jsonRpcUrl: process.env.MAINNET_FORKING_URL as string,
                     //you can fork from last block by commenting next line
                     blockNumber: 16169577,
                 },
@@ -309,7 +309,7 @@ describe("Automated strategy execution", function () {
         it("Should invest into ETH/frxETH pool", async () => {
             const _codeName = "Convex: ETH/frxETH";
             const _strategyAddress = strategyNative.address;
-            const _entryToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+            const _entryToken = wethToken;
             const _assetId = 2;
             const _chainId = 1;
             const _entryData = await strategyNative.encodeEntryParams(
@@ -361,9 +361,9 @@ describe("Automated strategy execution", function () {
                 '\n**********************************');
             console.log(await poolToken.balanceOf(strategyNative.address));
             await executor.connect(admin).executeDeposits();
-            // console.log('\nDeposit executed!\n');
-
+            console.log('\nDeposit executed!\n');
         });
+
     });
 
     // Extend a locking period - add an admin function for that.
