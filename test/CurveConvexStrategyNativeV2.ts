@@ -1,5 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { sign } from "crypto";
 import { BigNumber } from "ethers";
 import { AbiCoder, defaultAbiCoder, parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers, network, upgrades } from "hardhat";
@@ -257,11 +258,11 @@ describe("CurveConvexStrategyNativeV2", function () {
 
         await strategy.exitAll(exitData, 10000, outputCoin, receiver, false, false);
 
-        expect(await FXS.balanceOf(receiver)).to.be.gt(0);
+        expect(await FXS.balanceOf(receiver)).to.be.eq(0);
         expect(await crv.balanceOf(receiver)).to.be.eq(0);
         expect(await cvx.balanceOf(receiver)).to.be.eq(0);
 
-        expect(await FXS.balanceOf(strategy.address)).to.be.eq(0);
+        expect(await FXS.balanceOf(strategy.address)).to.be.gt(fxsBefore);
         expect(await crv.balanceOf(strategy.address)).to.be.gt(crvBefore);
         expect(await cvx.balanceOf(strategy.address)).to.be.gt(cvxBefore);
 
@@ -345,7 +346,6 @@ describe("CurveConvexStrategyNativeV2", function () {
 
     });
 
-    // TODO: add 0xf43211935c781d5ca1a41d2041f397b8a7366c7a to price feed (ETH/frxETH pool token)
     it("Should return LP position in fiat", async () => {
         const curvePool = "0xa1f8a6807c402e4a15ef4eba36528a3fed24e577";
         const fraxPool = "0xa537d64881b84faffb9Ae43c951EEbF368b71cdA";
@@ -367,13 +367,11 @@ describe("CurveConvexStrategyNativeV2", function () {
         await strategy.invest(entryData, amount);
         await skipDays(10);
 
-        // console.log(await ethers.provider.getBlockNumber());
         const request = await strategy.callStatic.getDeployedAmount(exitRewardData);
         expect(checkSpread(request, amount, 5));
 
     });
 
-    // TODO: add 0xf43211935c781d5ca1a41d2041f397b8a7366c7a to price feed (ETH/frxETH pool token)
     it("Should return LP position in fiat and claim rewards", async () => {
         const curvePool = "0xa1f8a6807c402e4a15ef4eba36528a3fed24e577";
         const fraxPool = "0xa537d64881b84faffb9Ae43c951EEbF368b71cdA";
@@ -403,12 +401,123 @@ describe("CurveConvexStrategyNativeV2", function () {
         await strategy.getDeployedAmountAndRewards(exitRewardData);
         expect(checkSpread(request, amount, 5));
 
-        // console.log(await crv.balanceOf(receiver), await crv.balanceOf(receiver), await FXS.balanceOf(receiver));
-
         expect(await FXS.balanceOf(receiver)).to.be.gt(fxsBefore);
         expect(await crv.balanceOf(receiver)).to.be.gt(crvBefore);
         expect(await cvx.balanceOf(receiver)).to.be.gt(cvxBefore);
 
     });
+
+    it("Should withdraw rewards", async () => {
+        const curvePool = "0xa1f8a6807c402e4a15ef4eba36528a3fed24e577";
+        const fraxPool = "0xa537d64881b84faffb9Ae43c951EEbF368b71cdA";
+        const poolToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        const wrappedEther = await ethers.getContractAt("contracts/interfaces/IWrappedEther.sol:IWrappedEther", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+        const outputCoin = wrappedEther.address;
+        const poolSize = 2;
+        const tokenIndexInCurve = 0;
+        const amount = parseEther("1000");
+        const duration = EIGHT_DAYS_IN_SECONDS;
+        const receiver = signer.address;
+        const lpToken = "0xf43211935c781d5ca1a41d2041f397b8a7366c7a";
+
+        const entryData = await strategy.encodeEntryParams(
+            curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
+        const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool)
+        const exitRewardData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+
+        await wrappedEther.transfer(strategy.address, amount);
+        await strategy.invest(entryData, amount);
+        await skipDays(10);
+
+        await strategy.getDeployedAmountAndRewards(exitRewardData);
+        await strategy.exitAll(exitData, 10000, outputCoin, receiver, false, false);
+
+        expect(await FXS.balanceOf(strategy.address)).to.be.gt(0);
+        expect(await crv.balanceOf(strategy.address)).to.be.gt(0);
+        expect(await cvx.balanceOf(strategy.address)).to.be.gt(0);
+
+        const balanceBefore = await wrappedEther.balanceOf(receiver);
+        await strategy.withdrawRewards(outputCoin);
+        expect(await wrappedEther.balanceOf(receiver)).to.be.gt(balanceBefore);
+
+
+    });
+
+    it("Should add an additional reward token", async () => {
+        const curvePool = "0xa1f8a6807c402e4a15ef4eba36528a3fed24e577";
+        const fraxPool = "0xa537d64881b84faffb9Ae43c951EEbF368b71cdA";
+        const poolToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        const outputCoin = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+        const wrappedEther = await ethers.getContractAt("contracts/interfaces/IWrappedEther.sol:IWrappedEther", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+        const poolSize = 2;
+        const tokenIndexInCurve = 0;
+        const amount = parseEther("1000");
+        const duration = EIGHT_DAYS_IN_SECONDS;
+        const receiver = signer.address;
+        const lpToken = "0xf43211935c781d5ca1a41d2041f397b8a7366c7a";
+        const newRewardToken = wrappedEther.address;
+
+        const entryData = await strategy.encodeEntryParams(
+            curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
+        const exitRewardData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+        const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool)
+
+        await wrappedEther.transfer(strategy.address, amount);
+        await strategy.invest(entryData, amount);
+        await skipDays(10);
+
+        await strategy.changeAdditionalRewardTokenStatus(newRewardToken, true);
+        await wrappedEther.transfer(strategy.address, amount);
+        const balanceBefore = await wrappedEther.balanceOf(receiver);
+        await strategy.getDeployedAmountAndRewards(exitRewardData);
+        await strategy.withdrawRewards(outputCoin);
+        const balanceAfter = await wrappedEther.balanceOf(receiver);
+
+        expect(checkSpread(balanceAfter, balanceBefore.add(amount), 5));
+
+        await wrappedEther.transfer(strategy.address, amount);
+        await strategy.invest(entryData, amount);
+        await skipDays(10);
+        await strategy.exitAll(exitData, 10000, outputCoin, receiver, true, false);
+
+        expect(checkSpread(await wrappedEther.balanceOf(receiver), balanceAfter, 5));
+
+    });
+
+    it("Should remove additional reward token", async () => {
+        const curvePool = "0xa1f8a6807c402e4a15ef4eba36528a3fed24e577";
+        const fraxPool = "0xa537d64881b84faffb9Ae43c951EEbF368b71cdA";
+        const poolToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        const outputCoin = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+        const wrappedEther = await ethers.getContractAt("contracts/interfaces/IWrappedEther.sol:IWrappedEther", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+        const poolSize = 2;
+        const tokenIndexInCurve = 0;
+        const amount = parseEther("1000");
+        const duration = EIGHT_DAYS_IN_SECONDS;
+        const receiver = signer.address;
+        const lpToken = "0xf43211935c781d5ca1a41d2041f397b8a7366c7a";
+        const newRewardToken = wrappedEther.address;
+
+        const entryData = await strategy.encodeEntryParams(
+            curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
+        const exitRewardData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+
+        await wrappedEther.transfer(strategy.address, amount);
+        await strategy.invest(entryData, amount);
+        await skipDays(10);
+
+        await strategy.changeAdditionalRewardTokenStatus(newRewardToken, true);
+        await wrappedEther.transfer(strategy.address, amount);
+        await strategy.changeAdditionalRewardTokenStatus(newRewardToken, false);
+
+        const balanceBefore = await wrappedEther.balanceOf(receiver);
+        await strategy.getDeployedAmountAndRewards(exitRewardData);
+        await strategy.withdrawRewards(usdc.address);
+        const balanceAfter = await wrappedEther.balanceOf(receiver);
+
+        expect(balanceAfter).to.be.eq(balanceBefore);
+
+    });
+
 
 });

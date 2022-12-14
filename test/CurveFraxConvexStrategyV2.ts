@@ -30,17 +30,25 @@ describe("CurveFraxConvexStrategyV2", function () {
     let signers: SignerWithAddress[];
     let signer: SignerWithAddress;
 
-    let usdc: IERC20Metadata, usdt: IERC20Metadata, crv: IERC20Metadata, cvx: IERC20Metadata, FXS: IERC20Metadata, weth: IERC20Metadata, poolRewards: IERC20Metadata;
+    let usdc: IERC20Metadata, usdt: IERC20Metadata, crv: IERC20Metadata, cvx: IERC20Metadata,
+        FXS: IERC20Metadata, weth: IERC20Metadata, poolRewards: IERC20Metadata;
     let cvxBooster: ICvxBooster;
     let exchange: IExchange;
     let frax: IERC20Metadata;
     let FraxPool: ILocking;
     let stakingToken: IConvexStaking;
 
-    const ZERO_ADDR = ethers.constants.AddressZero;
-    const EIGHT_DAYS_IN_SECONDS = 60 * 60 * 24 * 8;
+    const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
+    const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
+    const usdcToken = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    const wethToken = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const poolSize = 2;
+    const poolTokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    const lpToken = '0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC';
+    const tokenIndexInCurve = 1;
+    const duration = 60 * 60 * 24 * 8;  //EIGHT_DAYS_IN_SECONDS;
 
-    const addressToImpersonate = "0x2e91728aF3a54aCDCeD7938fE9016aE2cc5948C9";
+    const ZERO_ADDR = ethers.constants.AddressZero;
 
     async function resetNetwork() {
 
@@ -51,7 +59,7 @@ describe("CurveFraxConvexStrategyV2", function () {
                     enabled: true,
                     jsonRpcUrl: process.env.MAINNET_FORKING_URL as string,
                     //you can fork from last block by commenting next line
-                    blockNumber: 16095613,
+                    blockNumber: 16169577,
                 },
             },],
         });
@@ -124,9 +132,6 @@ describe("CurveFraxConvexStrategyV2", function () {
 
 
     it("Should check correct encoders/decoders", async () => {
-        let uint256 = ethers.utils.toUtf8Bytes("uint256");
-        let int128 = ethers.utils.toUtf8Bytes("int128");
-
         const curvePool = "0x0000000000000000000000000000000000000001";
         const poolToken = "0x0000000000000000000000000000000000000002";
         const poolSize = 2;
@@ -169,14 +174,8 @@ describe("CurveFraxConvexStrategyV2", function () {
     });
 
     it("Should repeat investment and exit", async () => {
-        const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
-        const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
-        const poolToken = usdc;
-        const poolSize = 2;
-        const tokenIndexInCurve = 1;
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
         const amount = parseUnits("1000", await poolToken.decimals());
-        const duration = EIGHT_DAYS_IN_SECONDS;
-        const lpToken = await ethers.getContractAt("IERC20Metadata", "0x8a53ee42FB458D4897e15cc7dEa3F75D0F1c3475")
 
         const entryData = await strategy.encodeEntryParams(
             curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
@@ -200,14 +199,9 @@ describe("CurveFraxConvexStrategyV2", function () {
     });
 
     it("Should exit and send to the signer without swapping", async () => {
-        const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
-        const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
-        const poolSize = 2;
-        const tokenIndexInCurve = 1;
-        const duration = EIGHT_DAYS_IN_SECONDS;
-        const poolToken = usdc;
+
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
         const amount = parseUnits("10", await poolToken.decimals());
-        const lpToken = await ethers.getContractAt("IERC20Metadata", "0x8a53ee42FB458D4897e15cc7dEa3F75D0F1c3475")
         const receiver = signer.address;
 
         const entryData = await strategy.encodeEntryParams(
@@ -230,14 +224,8 @@ describe("CurveFraxConvexStrategyV2", function () {
     });
 
     it("Should exit without swapping and sending rewards to the signer", async () => {
-        const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
-        const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
-        const poolSize = 2;
-        const tokenIndexInCurve = 1;
-        const duration = EIGHT_DAYS_IN_SECONDS;
-        const poolToken = usdc;
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
         const amount = parseUnits("10", await poolToken.decimals());
-        const lpToken = await ethers.getContractAt("IERC20Metadata", "0x8a53ee42FB458D4897e15cc7dEa3F75D0F1c3475")
         const receiver = signer.address;
 
         const entryData = await strategy.encodeEntryParams(
@@ -253,69 +241,45 @@ describe("CurveFraxConvexStrategyV2", function () {
 
         await strategy.exitAll(exitData, 10000, poolToken.address, receiver, false, false);
 
-        expect(await FXS.balanceOf(receiver)).to.be.gt(0);
+        expect(await FXS.balanceOf(receiver)).to.be.eq(0);
         expect(await crv.balanceOf(receiver)).to.be.eq(0);
         expect(await cvx.balanceOf(receiver)).to.be.eq(0);
 
-        expect(await FXS.balanceOf(strategy.address)).to.be.eq(0);
+        expect(await FXS.balanceOf(strategy.address)).to.be.gt(fxsBefore);
         expect(await crv.balanceOf(strategy.address)).to.be.gt(crvBefore);
         expect(await cvx.balanceOf(strategy.address)).to.be.gt(cvxBefore);
 
-        // console.log(await poolRewards.balanceOf(strategy.address));
-        // console.log(await poolRewards.balanceOf(signer.address));
+    });
+
+    it("Should exit and send rewards to the signer after swapping", async () => {
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
+        const amount = parseUnits("10", await poolToken.decimals());
+        const receiver = signer.address;
+
+        const entryData = await strategy.encodeEntryParams(
+            curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
+        const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool)
+        await poolToken.connect(signer).transfer(strategy.address, amount);
+        await strategy.invest(entryData, amount);
+        await skipDays(10);
+
+        await strategy.exitAll(exitData, 10000, poolToken.address, receiver, false, true);
+        const usdcBefore = await poolToken.balanceOf(receiver);
+        await strategy.exitOnlyRewards(exitData, poolToken.address, receiver, true);
+
+        expect(await FXS.balanceOf(receiver)).to.be.eq(0);
+        expect(await crv.balanceOf(receiver)).to.be.eq(0);
+        expect(await cvx.balanceOf(receiver)).to.be.eq(0);
+        expect(await usdc.balanceOf(strategy.address)).to.be.eq(0);
+
+        const usdcAfter = await poolToken.balanceOf(receiver);
+        expect(usdcAfter).to.be.gt(usdcBefore);
 
     });
 
-    // it("Should exit and send rewards to the signer after swapping", async () => {
-    //     const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
-    //     const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
-    //     const poolToken = usdc;
-    //     const poolSize = 2;
-    //     const tokenIndexInCurve = 1;
-    //     const amount = parseUnits("10", await poolToken.decimals());
-    //     const duration = EIGHT_DAYS_IN_SECONDS;
-    //     const lpToken = await ethers.getContractAt("IERC20Metadata", "0x8a53ee42FB458D4897e15cc7dEa3F75D0F1c3475")
-    //     const receiver = signer.address;
-
-    //     const entryData = await strategy.encodeEntryParams(
-    //         curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-    //     const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool)
-    //     await poolToken.connect(signer).transfer(strategy.address, amount);
-    //     await strategy.invest(entryData, amount);
-    //     await skipDays(10);
-
-    //     const fxsBefore = await FXS.balanceOf(receiver);
-    //     const crvBefore = await crv.balanceOf(receiver);
-    //     const cvxBefore = await cvx.balanceOf(receiver);
-
-    //     const usdcBefore = await poolToken.balanceOf(receiver);
-
-    //     console.log('BEFORE - crv balance: ', await crv.balanceOf(receiver), 'cvx balance: ', await cvx.balanceOf(receiver),
-    //         'fxs balance: ', await FXS.balanceOf(receiver), 'pool token: ', usdcBefore);
-
-    //     await strategy.exitAll(exitData, 10000, poolToken.address, receiver, true, true);
-
-    //     console.log('AFTER - crv balance: ', await crv.balanceOf(receiver), 'cvx balance: ', await cvx.balanceOf(receiver),
-    //         'fxs balance: ', await FXS.balanceOf(receiver), 'pool token: ', await poolToken.balanceOf(receiver));
-
-    //     expect(await FXS.balanceOf(receiver)).to.be.gt(0);
-    //     expect(await crv.balanceOf(receiver)).to.be.eq(0);
-    //     expect(await cvx.balanceOf(receiver)).to.be.eq(0);
-
-    //     const usdcAfter = await poolToken.balanceOf(receiver);
-
-    //     expect(usdcAfter).to.be.gte(usdcBefore.div(100).mul(101));
-    // });
-
     it("Should only exit rewards without swaping", async () => {
-        const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
-        const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
-        const poolSize = 2;
-        const tokenIndexInCurve = 1;
-        const duration = EIGHT_DAYS_IN_SECONDS;
-        const poolToken = usdc;
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
         const amount = parseUnits("10", await poolToken.decimals());
-        const lpToken = await ethers.getContractAt("IERC20Metadata", "0x8a53ee42FB458D4897e15cc7dEa3F75D0F1c3475")
         const receiver = signer.address;
 
         const entryData = await strategy.encodeEntryParams(
@@ -343,15 +307,8 @@ describe("CurveFraxConvexStrategyV2", function () {
 
 
     it("Should return LP position in fiat", async () => {
-        const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
-        const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
-        const poolSize = 2;
-        const tokenIndexInCurve = 1;
-        const duration = EIGHT_DAYS_IN_SECONDS;
-        const poolToken = usdc;
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
         const amount = parseUnits("10", await poolToken.decimals());
-        const lpToken = '0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC';
-        const receiver = strategy.address;
 
         const entryData = await strategy.encodeEntryParams(
             curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
@@ -366,14 +323,9 @@ describe("CurveFraxConvexStrategyV2", function () {
     });
 
     it("Should return LP position in fiat and claim rewards", async () => {
-        const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
-        const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
-        const poolSize = 2;
-        const tokenIndexInCurve = 1;
-        const duration = EIGHT_DAYS_IN_SECONDS;
-        const poolToken = usdc;
-        const amount = parseUnits("1000", await poolToken.decimals());
-        const lpToken = '0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC';
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
+        const amount = parseUnits("10", await poolToken.decimals());
+
         const receiver = strategy.address;
 
         const entryData = await strategy.encodeEntryParams(
@@ -397,7 +349,100 @@ describe("CurveFraxConvexStrategyV2", function () {
 
     });
 
+    it("Should add additional rewards token", async () => {
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
+        const amount = parseUnits("10", await poolToken.decimals());
 
+        const receiver = signer.address;
+        const wrappedEther = await ethers.getContractAt("contracts/interfaces/IWrappedEther.sol:IWrappedEther", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+        const newRewardToken = wrappedEther.address;
+
+        await wrappedEther.deposit({ value: ethers.utils.parseEther("50") })
+
+        const entryData = await strategy.encodeEntryParams(
+            curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
+        const exitRewardData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+
+        await poolToken.connect(signer).transfer(strategy.address, amount);
+        await strategy.invest(entryData, amount);
+        await skipDays(10);
+
+        await strategy.changeAdditionalRewardTokenStatus(newRewardToken, true);
+        const balanceBefore = await wrappedEther.balanceOf(receiver);
+        await wrappedEther.transfer(strategy.address, parseEther("50"));
+        await strategy.getDeployedAmountAndRewards(exitRewardData);
+        await strategy.withdrawRewards(newRewardToken);
+        const balanceAfter = await wrappedEther.balanceOf(receiver);
+
+        expect(balanceAfter).to.be.gt(balanceBefore);
+
+    });
+
+    it("Should remove additional reward token", async () => {
+
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
+        const amount = parseUnits("10", await poolToken.decimals());
+
+        const receiver = signer.address;
+        const wrappedEther = await ethers.getContractAt("contracts/interfaces/IWrappedEther.sol:IWrappedEther", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+        const newRewardToken = wrappedEther.address;
+
+        await wrappedEther.deposit({ value: ethers.utils.parseEther("50") })
+
+        const entryData = await strategy.encodeEntryParams(
+            curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
+        const exitRewardData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+        await poolToken.connect(signer).transfer(strategy.address, amount);
+        await strategy.invest(entryData, amount);
+        await skipDays(10);
+
+        await strategy.changeAdditionalRewardTokenStatus(newRewardToken, true);
+        await wrappedEther.transfer(strategy.address, parseEther("50"));
+        const balanceBefore = await wrappedEther.balanceOf(strategy.address);
+        await strategy.changeAdditionalRewardTokenStatus(newRewardToken, false);
+        await strategy.getDeployedAmountAndRewards(exitRewardData);
+        await strategy.withdrawRewards(poolToken.address);
+        const balanceAfter = await wrappedEther.balanceOf(strategy.address);
+
+        expect(balanceAfter).to.be.eq(balanceBefore);
+
+    });
+
+    it("Should add additional reward token and send rewards without swapping", async () => {
+        const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
+        const amount = parseUnits("10", await poolToken.decimals());
+
+        const receiver = signer.address;
+        const wrappedEther = await ethers.getContractAt("contracts/interfaces/IWrappedEther.sol:IWrappedEther", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+        const newRewardToken = wrappedEther.address;
+
+        await wrappedEther.deposit({ value: ethers.utils.parseEther("50") })
+
+        const entryData = await strategy.encodeEntryParams(
+            curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
+        const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool)
+
+        await poolToken.connect(signer).transfer(strategy.address, amount);
+        await strategy.invest(entryData, amount);
+        await skipDays(10);
+
+        await strategy.changeAdditionalRewardTokenStatus(newRewardToken, true);
+        const balanceBefore = await wrappedEther.balanceOf(receiver);
+        await wrappedEther.transfer(strategy.address, parseEther("50"));
+
+        const fxsBefore = await FXS.balanceOf(receiver);
+        const crvBefore = await crv.balanceOf(receiver);
+        const cvxBefore = await cvx.balanceOf(receiver);
+
+        await strategy.exitOnlyRewards(exitData, poolToken.address, receiver, false);
+        const balanceAfter = await wrappedEther.balanceOf(receiver);
+
+        expect(await FXS.balanceOf(receiver)).to.be.gt(fxsBefore);
+        expect(await crv.balanceOf(receiver)).to.be.gt(crvBefore);
+        expect(await cvx.balanceOf(receiver)).to.be.gt(cvxBefore);
+        expect(balanceAfter).to.be.eq(balanceBefore);
+
+    });
 
 
 });

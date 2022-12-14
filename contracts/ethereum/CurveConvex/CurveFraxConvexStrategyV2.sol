@@ -5,8 +5,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/interfaces/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "hardhat/console.sol";
@@ -28,6 +27,7 @@ contract CurveFraxConvexStrategyV2 is
 {
     using AddressUpgradeable for address;
     using SafeERC20 for IERC20;
+    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     address public priceFeed;
@@ -40,6 +40,8 @@ contract CurveFraxConvexStrategyV2 is
         IERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     IERC20 public constant CRV_REWARDS =
         IERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
+    IERC20 public constant FXS_REWARDS =
+        IERC20(0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0);
 
     bool public upgradeStatus;
     uint8 public constant unwindDecimals = 2;
@@ -52,7 +54,10 @@ contract CurveFraxConvexStrategyV2 is
         bytes32 indexed kek_id
     );
 
-    // constructor() initializer {}
+    EnumerableSetUpgradeable.AddressSet private additionalRewards;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
 
     function initialize(
         address _multiSigWallet,
@@ -79,7 +84,6 @@ contract CurveFraxConvexStrategyV2 is
     /// @notice Enters a Curve Pool and stakes LP tokens into FraxConvex
     /// @param data Payload containing necessary information to enter a curve pool and stake into frax convex
     /// @param amount Amount of poolToken to enter curve with
-
     function invest(bytes calldata data, uint256 amount)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -172,7 +176,6 @@ contract CurveFraxConvexStrategyV2 is
     /// @param receiver recipient of residual funds
     /// @param shouldWithdrawRewards bool to decide whether funds should be claimed from frax convex
     /// @param swapRewards bool to decide whether rewards should be swapped into a specific token
-
     function exitAll(
         bytes calldata data,
         uint256 unwindPercent,
@@ -193,9 +196,6 @@ contract CurveFraxConvexStrategyV2 is
         IFraxFarmERC20(fraxPool).withdrawLocked(kek_id, address(this));
 
         address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
-
-        // exchange and send to the receiver
-        _manageFraxRewards(fraxPool, swapRewards, outputCoin, receiver);
 
         // Get rewards from Convex
         IConvexWrapper(stakeToken).getReward(address(this), address(this));
@@ -234,28 +234,6 @@ contract CurveFraxConvexStrategyV2 is
         }
     }
 
-    /// @notice Only exchange to output coin OR send to receiver
-    function _manageFraxRewards(
-        address fraxPool,
-        bool swapRewards,
-        IERC20 outputCoin,
-        address receiver
-    ) internal {
-        // exchange the rewards and send to the reciever
-        address[] memory fraxPoolRewards = IFraxFarmERC20(fraxPool)
-            .getAllRewardTokens();
-        for (uint256 i; i < fraxPoolRewards.length; i++) {
-            if (swapRewards) {
-                _exchangeAll(IERC20(fraxPoolRewards[i]), outputCoin);
-            } else {
-                IERC20(fraxPoolRewards[i]).safeTransfer(
-                    receiver,
-                    IERC20(fraxPoolRewards[i]).balanceOf(address(this))
-                );
-            }
-        }
-    }
-
     function exitOnlyRewards(
         bytes calldata data,
         address outputCoin,
@@ -266,7 +244,6 @@ contract CurveFraxConvexStrategyV2 is
 
         // Get rewards from Frax
         IFraxFarmERC20(fraxPool).getReward(address(this));
-        _manageFraxRewards(fraxPool, swapRewards, IERC20(outputCoin), receiver);
 
         // Get rewards from Convex
         address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
@@ -358,6 +335,21 @@ contract CurveFraxConvexStrategyV2 is
         EXCHANGE.exchange(address(fromCoin), address(toCoin), amount, 0);
     }
 
+    /// @notice Used to track any additional rewards we need to keep track of.
+    /// @dev Important when claiming/ swapping all rewards to output coin
+    /// @param _newToken token address to add/remove
+    /// @param _status whether to add or remove
+    function changeAdditionalRewardTokenStatus(address _newToken, bool _status)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (_status) {
+            additionalRewards.add(_newToken);
+        } else {
+            additionalRewards.remove(_newToken);
+        }
+    }
+
     /// @notice Swaps all rewards if instructed to the output coin and sends the funds to the receiver
     /// @param swapRewards bool to swap or not
     /// @param outputCoin IERC20
@@ -370,6 +362,14 @@ contract CurveFraxConvexStrategyV2 is
         if (swapRewards) {
             _exchangeAll(CVX_REWARDS, outputCoin);
             _exchangeAll(CRV_REWARDS, outputCoin);
+            _exchangeAll(FXS_REWARDS, outputCoin);
+
+            uint256 additionalRewardsLength = additionalRewards.length();
+            if (additionalRewardsLength != 0) {
+                for (uint256 i; i < additionalRewardsLength; i++) {
+                    _exchangeAll(IERC20(additionalRewards.at(i)), outputCoin);
+                }
+            }
         } else {
             IERC20(CVX_REWARDS).safeTransfer(
                 receiver,
@@ -379,6 +379,21 @@ contract CurveFraxConvexStrategyV2 is
                 receiver,
                 CRV_REWARDS.balanceOf(address(this))
             );
+            FXS_REWARDS.safeTransfer(
+                receiver,
+                FXS_REWARDS.balanceOf(address(this))
+            );
+
+            uint256 additionalRewardsLength = additionalRewards.length();
+            if (additionalRewardsLength != 0) {
+                for (uint256 i; i < additionalRewardsLength; i++) {
+                    address token = additionalRewards.at(i);
+                    IERC20(token).safeTransfer(
+                        receiver,
+                        IERC20(token).balanceOf(address(this))
+                    );
+                }
+            }
         }
         IERC20(outputCoin).safeTransfer(
             receiver,
@@ -480,21 +495,20 @@ contract CurveFraxConvexStrategyV2 is
         return abi.decode(data, (address, address, uint256));
     }
 
-    function getCvxRewardPool(uint256 poolId)
-        private
-        view
-        returns (ICvxBaseRewardPool)
+    function grantRole(bytes32 role, address account)
+        public
+        override
+        onlyRole(getRoleAdmin(role))
     {
-        (, , , address pool, , ) = CVX_BOOSTER.poolInfo(poolId);
-        return ICvxBaseRewardPool(pool);
+        _grantRole(role, account);
     }
 
-    // function getCvxLpToken(
-    //     uint256 poolId
-    // ) private view returns (IERC20) {
-    //     (address lpToken, , , , , ) = CVX_BOOSTER.poolInfo(poolId);
-    //     return IERC20(lpToken);
-    // }
+    function changeUpgradeStatus(bool _status)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        upgradeStatus = _status;
+    }
 
     function _authorizeUpgrade(address)
         internal

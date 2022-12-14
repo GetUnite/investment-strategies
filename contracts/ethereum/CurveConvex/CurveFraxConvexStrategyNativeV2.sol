@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 
-import "hardhat/console.sol";
-
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -42,6 +39,8 @@ contract CurveConvexStrategyNativeV2 is
         IERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     IERC20 public constant CRV_REWARDS =
         IERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
+    IERC20 public constant FXS_REWARDS =
+        IERC20(0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0);
     IWrappedEther public constant WETH =
         IWrappedEther(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     bool public upgradeStatus;
@@ -153,8 +152,8 @@ contract CurveConvexStrategyNativeV2 is
         IConvexWrapper(address(stakeToken)).deposit(crvLpAmount, address(this));
         uint256 fraxLpAmount = IERC20(stakeToken).balanceOf(address(this));
         IERC20(stakeToken).safeIncreaseAllowance(fraxPool, fraxLpAmount);
-        // Now stake and lock these LP tokens into the frax farm.
 
+        // Now stake and lock these LP tokens into the frax farm.
         //check if we have a position there already
         IFraxFarmERC20.LockedStake[] memory lockedstakes = IFraxFarmERC20(
             fraxPool
@@ -203,9 +202,6 @@ contract CurveConvexStrategyNativeV2 is
 
         address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
 
-        // exchange and send to the receiver
-        _manageFraxRewards(fraxPool, swapRewards, outputCoin, receiver);
-
         // Get rewards from Convex
         IConvexWrapper(stakeToken).getReward(address(this), address(this));
 
@@ -237,11 +233,9 @@ contract CurveConvexStrategyNativeV2 is
             }
         }
 
-        // console.log("start exchanging pool token to outputCoin");
         // execute exchanges and transfer all tokens to receiver
         _exchangeAll(IERC20(poolToken), IERC20(outputCoin));
         if (shouldWithdrawRewards) {
-            console.log("withdrawing rewards...");
             _manageRewardsAndWithdraw(
                 swapRewards,
                 IERC20(outputCoin),
@@ -252,28 +246,6 @@ contract CurveConvexStrategyNativeV2 is
                 receiver,
                 outputCoin.balanceOf(address(this))
             );
-        }
-    }
-
-    /// @notice Only exchange to output coin OR send to receiver
-    function _manageFraxRewards(
-        address fraxPool,
-        bool swapRewards,
-        IERC20 outputCoin,
-        address receiver
-    ) internal {
-        // exchange the rewards and send to the reciever
-        address[] memory fraxPoolRewards = IFraxFarmERC20(fraxPool)
-            .getAllRewardTokens();
-        for (uint256 i; i < fraxPoolRewards.length; i++) {
-            if (swapRewards) {
-                _exchangeAll(IERC20(fraxPoolRewards[i]), outputCoin);
-            } else {
-                IERC20(fraxPoolRewards[i]).safeTransfer(
-                    receiver,
-                    IERC20(fraxPoolRewards[i]).balanceOf(address(this))
-                );
-            }
         }
     }
 
@@ -301,11 +273,8 @@ contract CurveConvexStrategyNativeV2 is
         IFraxFarmERC20(fraxPool).getReward(address(this));
         IConvexWrapper(stakeToken).getReward(address(this));
 
-        console.log(priceFeed, lpToken, liquidity, assetId);
         (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(priceFeed)
             .getPriceOfAmount(lpToken, liquidity, assetId);
-
-        console.log(fiatPrice);
 
         return
             IPriceFeedRouterV2(priceFeed).decimalsConverter(
@@ -341,7 +310,6 @@ contract CurveConvexStrategyNativeV2 is
 
         // Get rewards from Frax
         IFraxFarmERC20(fraxPool).getReward(address(this));
-        _manageFraxRewards(fraxPool, swapRewards, IERC20(outputCoin), receiver);
 
         // Get rewards from Convex
         address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
@@ -382,7 +350,7 @@ contract CurveConvexStrategyNativeV2 is
         uint256 lpAmount = IFraxFarmERC20(fraxPool).lockedLiquidityOf(
             address(this)
         );
-        console.log(priceFeed, lpToken, lpAmount, assetId);
+
         (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(priceFeed)
             .getPriceOfAmount(lpToken, lpAmount, assetId);
         return
@@ -419,6 +387,7 @@ contract CurveConvexStrategyNativeV2 is
         if (swapRewards) {
             _exchangeAll(CVX_REWARDS, outputCoin);
             _exchangeAll(CRV_REWARDS, outputCoin);
+            _exchangeAll(FXS_REWARDS, outputCoin);
 
             uint256 additionalRewardsLength = additionalRewards.length();
             if (additionalRewardsLength != 0) {
@@ -435,6 +404,10 @@ contract CurveConvexStrategyNativeV2 is
                 receiver,
                 CRV_REWARDS.balanceOf(address(this))
             );
+            FXS_REWARDS.safeTransfer(
+                receiver,
+                FXS_REWARDS.balanceOf(address(this))
+            );
 
             uint256 additionalRewardsLength = additionalRewards.length();
             if (additionalRewardsLength != 0) {
@@ -449,15 +422,6 @@ contract CurveConvexStrategyNativeV2 is
         }
 
         outputCoin.safeTransfer(receiver, outputCoin.balanceOf(address(this)));
-    }
-
-    function getCvxRewardPool(uint256 poolId)
-        private
-        view
-        returns (ICvxBaseRewardPool)
-    {
-        (, , , address pool, , ) = CVX_BOOSTER.poolInfo(poolId);
-        return ICvxBaseRewardPool(pool);
     }
 
     function multicall(
