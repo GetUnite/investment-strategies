@@ -9,6 +9,8 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import 'hardhat-contract-sizer'
 import './tasks'
+import '@openzeppelin/hardhat-upgrades';
+import "@nomiclabs/hardhat-solhint";
 
 dotenv.config();
 
@@ -78,7 +80,10 @@ const config: HardhatUserConfig = {
   //   apiKey: process.env.ETHERSCAN_API_KEY,
   // },
   etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY,
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY != undefined ? process.env.ETHERSCAN_API_KEY : "",
+      polygon: process.env.POLYGONSCAN_API_KEY != undefined ? process.env.POLYGONSCAN_API_KEY : ""
+    }
   },
 
   mocha: {
