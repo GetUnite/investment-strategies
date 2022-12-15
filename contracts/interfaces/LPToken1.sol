@@ -14,13 +14,15 @@ interface LPToken1 {
 
     function approve(address _spender, uint256 _value) external returns (bool);
 
-    function increaseAllowance(address _spender, uint256 _added_value)
-        external
-        returns (bool);
+    function increaseAllowance(
+        address _spender,
+        uint256 _added_value
+    ) external returns (bool);
 
-    function decreaseAllowance(address _spender, uint256 _subtracted_value)
-        external
-        returns (bool);
+    function decreaseAllowance(
+        address _spender,
+        uint256 _subtracted_value
+    ) external returns (bool);
 
     function mint(address _to, uint256 _value) external returns (bool);
 
@@ -36,10 +38,10 @@ interface LPToken1 {
 
     function balanceOf(address arg0) external view returns (uint256);
 
-    function allowance(address arg0, address arg1)
-        external
-        view
-        returns (uint256);
+    function allowance(
+        address arg0,
+        address arg1
+    ) external view returns (uint256);
 
     function totalSupply() external view returns (uint256);
 

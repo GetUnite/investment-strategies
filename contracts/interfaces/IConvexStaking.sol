@@ -9,10 +9,10 @@ interface IConvexStaking {
 
     function addRewards() external;
 
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
 
     function approve(address spender, uint256 amount) external returns (bool);
 
@@ -36,24 +36,25 @@ interface IConvexStaking {
 
     function decimals() external view returns (uint8);
 
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        external
-        returns (bool);
+    function decreaseAllowance(
+        address spender,
+        uint256 subtractedValue
+    ) external returns (bool);
 
     function deposit(uint256 _amount, address _to) external;
 
-    function earned(address _account)
-        external
-        view
-        returns (EarnedData[] memory claimable);
+    function earned(
+        address _account
+    ) external view returns (EarnedData[] memory claimable);
 
     function getReward(address _account, address _forwardTo) external;
 
     function getReward(address _account) external;
 
-    function increaseAllowance(address spender, uint256 addedValue)
-        external
-        returns (bool);
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) external returns (bool);
 
     function initialize(
         address _curveToken,
@@ -77,7 +78,9 @@ interface IConvexStaking {
 
     function rewardLength() external view returns (uint256);
 
-    function rewards(uint256)
+    function rewards(
+        uint256
+    )
         external
         view
         returns (
@@ -101,9 +104,10 @@ interface IConvexStaking {
 
     function totalSupply() external view returns (uint256);
 
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
 
     function transferFrom(
         address sender,
@@ -113,9 +117,9 @@ interface IConvexStaking {
 
     function transferOwnership(address newOwner) external;
 
-    function user_checkpoint(address[2] memory _accounts)
-        external
-        returns (bool);
+    function user_checkpoint(
+        address[2] memory _accounts
+    ) external returns (bool);
 
     function withdraw(uint256 _amount) external;
 

@@ -18,17 +18,17 @@ interface IUSDC {
         view
         returns (bytes32);
 
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
 
     function approve(address spender, uint256 value) external returns (bool);
 
-    function authorizationState(address authorizer, bytes32 nonce)
-        external
-        view
-        returns (bool);
+    function authorizationState(
+        address authorizer,
+        bytes32 nonce
+    ) external view returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
 
@@ -46,21 +46,24 @@ interface IUSDC {
         bytes32 s
     ) external;
 
-    function configureMinter(address minter, uint256 minterAllowedAmount)
-        external
-        returns (bool);
+    function configureMinter(
+        address minter,
+        uint256 minterAllowedAmount
+    ) external returns (bool);
 
     function currency() external view returns (string memory);
 
     function decimals() external view returns (uint8);
 
-    function decreaseAllowance(address spender, uint256 decrement)
-        external
-        returns (bool);
+    function decreaseAllowance(
+        address spender,
+        uint256 decrement
+    ) external returns (bool);
 
-    function increaseAllowance(address spender, uint256 increment)
-        external
-        returns (bool);
+    function increaseAllowance(
+        address spender,
+        uint256 increment
+    ) external returns (bool);
 
     function initialize(
         string memory tokenName,

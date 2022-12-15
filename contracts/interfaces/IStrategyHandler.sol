@@ -57,61 +57,50 @@ interface IStrategyHandler {
 
     function getAllAssetActiveIds() external view returns (uint256[] memory);
 
-    function getAssetActiveIds(uint256 _assetId)
-        external
-        view
-        returns (uint256[] memory);
+    function getAssetActiveIds(
+        uint256 _assetId
+    ) external view returns (uint256[] memory);
 
     function getAssetAmount(uint256 _id) external view returns (uint256);
 
-    function getAssetIdByDirectionId(uint256 _id)
-        external
-        view
-        returns (uint256);
+    function getAssetIdByDirectionId(
+        uint256 _id
+    ) external view returns (uint256);
 
     function getCurrentDeployed()
         external
         view
         returns (uint256[] memory amounts);
 
-    function getDirectionFullInfoById(uint256 _id)
-        external
-        view
-        returns (address, LiquidityDirection memory);
+    function getDirectionFullInfoById(
+        uint256 _id
+    ) external view returns (address, LiquidityDirection memory);
 
-    function getDirectionIdByName(string memory _codeName)
-        external
-        view
-        returns (uint256);
+    function getDirectionIdByName(
+        string memory _codeName
+    ) external view returns (uint256);
 
-    function getDirectionLatestAmount(uint256 _id)
-        external
-        view
-        returns (uint256);
+    function getDirectionLatestAmount(
+        uint256 _id
+    ) external view returns (uint256);
 
     function getLatestDeployed()
         external
         view
         returns (uint256[] memory amounts);
 
-    function getLiquidityDirectionById(uint256 _id)
-        external
-        view
-        returns (LiquidityDirection memory);
+    function getLiquidityDirectionById(
+        uint256 _id
+    ) external view returns (LiquidityDirection memory);
 
-    function getLiquidityDirectionByName(string memory _codeName)
-        external
-        view
-        returns (
-            uint256,
-            address,
-            LiquidityDirection memory
-        );
+    function getLiquidityDirectionByName(
+        string memory _codeName
+    ) external view returns (uint256, address, LiquidityDirection memory);
 
-    function getPrimaryTokenByAssetId(uint256 _id, uint256 _chainId)
-        external
-        view
-        returns (address);
+    function getPrimaryTokenByAssetId(
+        uint256 _id,
+        uint256 _chainId
+    ) external view returns (address);
 
     function getRoleAdmin(bytes32 role) external view returns (bytes32);
 
@@ -119,10 +108,10 @@ interface IStrategyHandler {
 
     function grantRole(bytes32 role, address account) external;
 
-    function hasRole(bytes32 role, address account)
-        external
-        view
-        returns (bool);
+    function hasRole(
+        bytes32 role,
+        address account
+    ) external view returns (bool);
 
     function initialize(
         address _multiSigWallet,
@@ -134,7 +123,9 @@ interface IStrategyHandler {
 
     function lastTimeCalculated() external view returns (uint256);
 
-    function liquidityDirection(uint256)
+    function liquidityDirection(
+        uint256
+    )
         external
         view
         returns (
@@ -192,6 +183,8 @@ interface IStrategyHandler {
 
     function upgradeTo(address newImplementation) external;
 
-    function upgradeToAndCall(address newImplementation, bytes memory data)
-        external;
+    function upgradeToAndCall(
+        address newImplementation,
+        bytes memory data
+    ) external;
 }

@@ -8,14 +8,15 @@ interface ICurvePool {
 
     function get_virtual_price() external view returns (uint256);
 
-    function calc_token_amount(uint256 _amounts, bool _is_deposit)
-        external
-        view
-        returns (uint256);
+    function calc_token_amount(
+        uint256 _amounts,
+        bool _is_deposit
+    ) external view returns (uint256);
 
-    function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount)
-        external
-        returns (uint256);
+    function add_liquidity(
+        uint256[2] memory _amounts,
+        uint256 _min_mint_amount
+    ) external returns (uint256);
 
     function get_dy(
         int128 i,
@@ -30,19 +31,20 @@ interface ICurvePool {
         uint256 _min_dy
     ) external returns (uint256);
 
-    function remove_liquidity(uint256 _amount, uint256 _min_amounts)
-        external
-        returns (uint256);
+    function remove_liquidity(
+        uint256 _amount,
+        uint256 _min_amounts
+    ) external returns (uint256);
 
     function remove_liquidity_imbalance(
         uint256 _amounts,
         uint256 _max_burn_amount
     ) external returns (uint256);
 
-    function calc_withdraw_one_coin(uint256 _token_amount, int128 i)
-        external
-        view
-        returns (uint256);
+    function calc_withdraw_one_coin(
+        uint256 _token_amount,
+        int128 i
+    ) external view returns (uint256);
 
     function remove_liquidity_one_coin(
         uint256 _token_amount,

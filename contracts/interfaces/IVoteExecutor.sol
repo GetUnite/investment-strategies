@@ -36,8 +36,10 @@ interface IVoteExecutorMaster {
 
     function UPGRADER_ROLE() external view returns (bytes32);
 
-    function approveSubmittedData(uint256 _dataId, bytes[] memory _signs)
-        external;
+    function approveSubmittedData(
+        uint256 _dataId,
+        bytes[] memory _signs
+    ) external;
 
     function bridgingInfo()
         external
@@ -54,24 +56,17 @@ interface IVoteExecutorMaster {
 
     function changeUpgradeStatus(bool _status) external;
 
-    function decodeApyCommand(bytes memory _data)
-        external
-        pure
-        returns (
-            string memory,
-            uint256,
-            uint256
-        );
+    function decodeApyCommand(
+        bytes memory _data
+    ) external pure returns (string memory, uint256, uint256);
 
-    function decodeData(bytes memory _data)
-        external
-        pure
-        returns (bytes32, Message[] memory);
+    function decodeData(
+        bytes memory _data
+    ) external pure returns (bytes32, Message[] memory);
 
-    function decodeMintCommand(bytes memory _data)
-        external
-        pure
-        returns (uint256, uint256);
+    function decodeMintCommand(
+        bytes memory _data
+    ) external pure returns (uint256, uint256);
 
     function encodeAllMessages(
         uint256[] memory _commandIndexes,
@@ -85,9 +80,10 @@ interface IVoteExecutorMaster {
             bytes memory inputData
         );
 
-    function encodeLiquidityCommand(string memory _codeName, uint256 _percent)
-        external
-        returns (uint256, bytes memory);
+    function encodeLiquidityCommand(
+        string memory _codeName,
+        uint256 _percent
+    ) external returns (uint256, bytes memory);
 
     function encodeApyCommand(
         string memory _ibAlluoName,
@@ -95,10 +91,10 @@ interface IVoteExecutorMaster {
         uint256 _newInterestPerSecond
     ) external pure returns (uint256, bytes memory);
 
-    function encodeMintCommand(uint256 _newMintAmount, uint256 _period)
-        external
-        pure
-        returns (uint256, bytes memory);
+    function encodeMintCommand(
+        uint256 _newMintAmount,
+        uint256 _period
+    ) external pure returns (uint256, bytes memory);
 
     function executeSpecificData(uint256 index) external;
 
@@ -106,23 +102,18 @@ interface IVoteExecutorMaster {
 
     function getRoleAdmin(bytes32 role) external view returns (bytes32);
 
-    function getSubmittedData(uint256 _dataId)
-        external
-        view
-        returns (
-            bytes memory,
-            uint256,
-            bytes[] memory
-        );
+    function getSubmittedData(
+        uint256 _dataId
+    ) external view returns (bytes memory, uint256, bytes[] memory);
 
     function gnosis() external view returns (address);
 
     function grantRole(bytes32 role, address account) external;
 
-    function hasRole(bytes32 role, address account)
-        external
-        view
-        returns (bool);
+    function hasRole(
+        bytes32 role,
+        address account
+    ) external view returns (bool);
 
     function hashExecutionTime(bytes32) external view returns (uint256);
 
@@ -153,15 +144,16 @@ interface IVoteExecutorMaster {
 
     function setMinSigns(uint256 _minSigns) external;
 
-    function setNextChainExecutor(address _newAddress, uint256 chainNumber)
-        external;
+    function setNextChainExecutor(
+        address _newAddress,
+        uint256 chainNumber
+    ) external;
 
     function submitData(bytes memory data) external;
 
-    function submittedData(uint256)
-        external
-        view
-        returns (bytes memory data, uint256 time);
+    function submittedData(
+        uint256
+    ) external view returns (bytes memory data, uint256 time);
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 
@@ -171,7 +163,8 @@ interface IVoteExecutorMaster {
 
     function upgradeTo(address newImplementation) external;
 
-    function upgradeToAndCall(address newImplementation, bytes memory data)
-        external
-        payable;
+    function upgradeToAndCall(
+        address newImplementation,
+        bytes memory data
+    ) external payable;
 }

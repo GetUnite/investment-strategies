@@ -9,14 +9,14 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
-import {IAlluoStrategyV2} from "./../../IAlluoStrategyV2.sol";
+import {IAlluoStrategyV2} from "./interfaces/IAlluoStrategyV2.sol";
 import {ICvxBooster} from "./interfaces/ICvxBooster.sol";
 import {ICvxBaseRewardPool} from "./interfaces/ICvxBaseRewardPool.sol";
-import {IExchange} from "../../interfaces/IExchange.sol";
+import {IExchange} from "./interfaces/IExchange.sol";
 import {IPriceFeedRouterV2} from "./interfaces/IPriceFeedRouterV2.sol";
-import {IWrappedEther} from "../../interfaces/IWrappedEther.sol";
+import {IWrappedEther} from "./interfaces/IWrappedEther.sol";
 import {IFraxFarmERC20} from "./interfaces/IFraxFarmERC20.sol";
-import {ICurvePool} from "../../interfaces/ICurvePool.sol";
+import {ICurvePool} from "./interfaces/ICurvePool.sol";
 import {IConvexWrapper} from "./interfaces/IConvexWrapper.sol";
 
 contract CurveFraxConvexStrategyV2 is

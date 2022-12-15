@@ -9,11 +9,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {IAlluoStrategyV2} from "./interfaces/IAlluoStrategyV2.sol";
+import {IAlluoStrategyV2} from "../../../interfaces/IAlluoStrategyV2.sol";
 import {ICvxBooster} from "./interfaces/ICvxBooster.sol";
 import {ICvxBaseRewardPool} from "./interfaces/ICvxBaseRewardPool.sol";
-import {IExchange} from "./interfaces/IExchange.sol";
-import {IPriceFeedRouterV2} from "./interfaces/IPriceFeedRouterV2.sol";
+import {IExchange} from "../../../interfaces/IExchange.sol";
+import {IPriceFeedRouterV2} from "../../../interfaces/IPriceFeedRouterV2.sol";
 
 contract CurveConvexStrategyV2 is
     IAlluoStrategyV2,
@@ -66,10 +66,10 @@ contract CurveConvexStrategyV2 is
     /// @param data Payload containing necessary information to enter a curve pool and stake into convex
     /// @param amount Amount of poolToken to enter curve with
 
-    function invest(
-        bytes calldata data,
-        uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function invest(bytes calldata data, uint256 amount)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         (
             address curvePool,
             IERC20 poolToken,
@@ -205,9 +205,11 @@ contract CurveConvexStrategyV2 is
     /// @dev Called by the Vote Executor, this is used in the process of calculating the current position in Convex for Alluo staking reward calculations
     /// @param data Contains Convex pool data as well as the asset the function should return the value in.
     /// @return uint256 amount of the position valued in assetId price.
-    function getDeployedAmountAndRewards(
-        bytes calldata data
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256) {
+    function getDeployedAmountAndRewards(bytes calldata data)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        returns (uint256)
+    {
         (
             IERC20 lpToken,
             uint256 convexPoolId,
@@ -237,9 +239,10 @@ contract CurveConvexStrategyV2 is
     /// @notice Swaps rewards to "token" and sends it to the Vote Executor
     /// @dev Swaps existing rewards already claimed to the token. This does not claim from convex.
     /// @param _token The token we expect to receive rewards in
-    function withdrawRewards(
-        address _token
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function withdrawRewards(address _token)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _manageRewardsAndWithdraw(true, IERC20(_token), msg.sender);
     }
 
@@ -303,9 +306,11 @@ contract CurveConvexStrategyV2 is
     /// @dev Used as a view function to track positions
     /// @param data contains information of the convex pool and the assetId to return the value of the position.
     /// @return value of the current position described by data
-    function getDeployedAmount(
-        bytes calldata data
-    ) external view returns (uint256) {
+    function getDeployedAmount(bytes calldata data)
+        external
+        view
+        returns (uint256)
+    {
         (
             IERC20 lpToken,
             uint256 convexPoolId,
@@ -375,36 +380,58 @@ contract CurveConvexStrategyV2 is
         return abi.encode(lpToken, convexPoolId, assetId);
     }
 
-    function decodeEntryParams(
-        bytes calldata data
-    ) public pure returns (address, IERC20, IERC20, uint8, uint8, uint256) {
+    function decodeEntryParams(bytes calldata data)
+        public
+        pure
+        returns (
+            address,
+            IERC20,
+            IERC20,
+            uint8,
+            uint8,
+            uint256
+        )
+    {
         require(data.length == 32 * 6, "CurveConvexStrategyV2: length en");
         return
             abi.decode(data, (address, IERC20, IERC20, uint8, uint8, uint256));
     }
 
-    function decodeExitParams(
-        bytes calldata data
-    )
+    function decodeExitParams(bytes calldata data)
         public
         pure
-        returns (address, IERC20, IERC20, bytes memory, uint8, uint256)
+        returns (
+            address,
+            IERC20,
+            IERC20,
+            bytes memory,
+            uint8,
+            uint256
+        )
     {
         require(data.length == 32 * 8, "CurveConvexStrategyV2: length ex");
         return
             abi.decode(data, (address, IERC20, IERC20, bytes, uint8, uint256));
     }
 
-    function decodeRewardsParams(
-        bytes calldata data
-    ) public pure returns (IERC20, uint256, uint256) {
+    function decodeRewardsParams(bytes calldata data)
+        public
+        pure
+        returns (
+            IERC20,
+            uint256,
+            uint256
+        )
+    {
         require(data.length == 32 * 3, "CurveConvexStrategyV2: length ex");
         return abi.decode(data, (IERC20, uint256, uint256));
     }
 
-    function getCvxRewardPool(
-        uint256 poolId
-    ) private view returns (ICvxBaseRewardPool) {
+    function getCvxRewardPool(uint256 poolId)
+        private
+        view
+        returns (ICvxBaseRewardPool)
+    {
         (, , , address pool, , ) = CVX_BOOSTER.poolInfo(poolId);
         return ICvxBaseRewardPool(pool);
     }
@@ -420,25 +447,29 @@ contract CurveConvexStrategyV2 is
         }
     }
 
-    function grantRole(
-        bytes32 role,
-        address account
-    ) public override onlyRole(getRoleAdmin(role)) {
+    function grantRole(bytes32 role, address account)
+        public
+        override
+        onlyRole(getRoleAdmin(role))
+    {
         // if (role == DEFAULT_ADMIN_ROLE) {
         //     require(account.isContract(), "Handler: Not contract");
         // }
         _grantRole(role, account);
     }
 
-    function changeUpgradeStatus(
-        bool _status
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function changeUpgradeStatus(bool _status)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         upgradeStatus = _status;
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyRole(UPGRADER_ROLE) {
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyRole(UPGRADER_ROLE)
+    {
         require(upgradeStatus, "Executor: Upgrade not allowed");
         upgradeStatus = false;
     }

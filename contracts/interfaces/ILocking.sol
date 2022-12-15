@@ -38,7 +38,9 @@ interface ILocking {
 
     function acceptOwnership() external;
 
-    function calcCurCombinedWeight(address account)
+    function calcCurCombinedWeight(
+        address account
+    )
         external
         view
         returns (
@@ -47,10 +49,10 @@ interface ILocking {
             uint256 new_combined_weight
         );
 
-    function calcCurrLockMultiplier(address account, uint256 stake_idx)
-        external
-        view
-        returns (uint256 midpoint_lock_multiplier);
+    function calcCurrLockMultiplier(
+        address account,
+        uint256 stake_idx
+    ) external view returns (uint256 midpoint_lock_multiplier);
 
     function changeTokenManager(
         address reward_token_address,
@@ -61,10 +63,9 @@ interface ILocking {
 
     function curvePool() external view returns (address);
 
-    function earned(address account)
-        external
-        view
-        returns (uint256[] memory new_earned);
+    function earned(
+        address account
+    ) external view returns (uint256[] memory new_earned);
 
     function fraxPerLPStored() external view returns (uint256);
 
@@ -74,13 +75,14 @@ interface ILocking {
 
     function getProxyFor(address addr) external view returns (address);
 
-    function getReward(address destination_address)
-        external
-        returns (uint256[] memory);
+    function getReward(
+        address destination_address
+    ) external returns (uint256[] memory);
 
-    function getReward2(address destination_address, bool claim_extra_too)
-        external
-        returns (uint256[] memory);
+    function getReward2(
+        address destination_address,
+        bool claim_extra_too
+    ) external returns (uint256[] memory);
 
     function getRewardExtraLogic(address destination_address) external;
 
@@ -89,10 +91,10 @@ interface ILocking {
         view
         returns (uint256[] memory rewards_per_duration_arr);
 
-    function isTokenManagerFor(address caller_addr, address reward_token_addr)
-        external
-        view
-        returns (bool);
+    function isTokenManagerFor(
+        address caller_addr,
+        address reward_token_addr
+    ) external view returns (bool);
 
     function lastRewardClaimTime(address) external view returns (uint256);
 
@@ -112,7 +114,10 @@ interface ILocking {
 
     function lockedLiquidityOf(address account) external view returns (uint256);
 
-    function lockedStakes(address, uint256)
+    function lockedStakes(
+        address,
+        uint256
+    )
         external
         view
         returns (
@@ -123,27 +128,23 @@ interface ILocking {
             uint256 lock_multiplier
         );
 
-    function lockedStakesOf(address account)
-        external
-        view
-        returns (LockedStake[] memory);
+    function lockedStakesOf(
+        address account
+    ) external view returns (LockedStake[] memory);
 
-    function lockedStakesOfLength(address account)
-        external
-        view
-        returns (uint256);
+    function lockedStakesOfLength(
+        address account
+    ) external view returns (uint256);
 
     function maxLPForMaxBoost(address account) external view returns (uint256);
 
-    function minVeFXSForMaxBoost(address account)
-        external
-        view
-        returns (uint256);
+    function minVeFXSForMaxBoost(
+        address account
+    ) external view returns (uint256);
 
-    function minVeFXSForMaxBoostProxy(address proxy_address)
-        external
-        view
-        returns (uint256);
+    function minVeFXSForMaxBoostProxy(
+        address proxy_address
+    ) external view returns (uint256);
 
     function nominateNewOwner(address _owner) external;
 
@@ -153,10 +154,9 @@ interface ILocking {
 
     function periodFinish() external view returns (uint256);
 
-    function proxyStakedFrax(address proxy_address)
-        external
-        view
-        returns (uint256);
+    function proxyStakedFrax(
+        address proxy_address
+    ) external view returns (uint256);
 
     function proxyToggleStaker(address staker_address) external;
 
@@ -166,10 +166,9 @@ interface ILocking {
 
     function rewardManagers(address) external view returns (address);
 
-    function rewardRates(uint256 token_idx)
-        external
-        view
-        returns (uint256 rwd_rate);
+    function rewardRates(
+        uint256 token_idx
+    ) external view returns (uint256 rwd_rate);
 
     function rewardTokenAddrToIdx(address) external view returns (uint256);
 
@@ -195,9 +194,10 @@ interface ILocking {
         address _rewards_distributor_address
     ) external;
 
-    function stakeLocked(uint256 liquidity, uint256 secs)
-        external
-        returns (bytes32);
+    function stakeLocked(
+        uint256 liquidity,
+        uint256 secs
+    ) external returns (bytes32);
 
     function stakerSetVeFXSProxy(address proxy_address) external;
 
@@ -223,10 +223,9 @@ interface ILocking {
 
     function userStakedFrax(address account) external view returns (uint256);
 
-    function veFXSMultiplier(address account)
-        external
-        view
-        returns (uint256 vefxs_multiplier);
+    function veFXSMultiplier(
+        address account
+    ) external view returns (uint256 vefxs_multiplier);
 
     function vefxs_boost_scale_factor() external view returns (uint256);
 
@@ -234,7 +233,8 @@ interface ILocking {
 
     function vefxs_per_frax_for_max_boost() external view returns (uint256);
 
-    function withdrawLocked(bytes32 kek_id, address destination_address)
-        external
-        returns (uint256);
+    function withdrawLocked(
+        bytes32 kek_id,
+        address destination_address
+    ) external returns (uint256);
 }

@@ -101,10 +101,10 @@ contract StrategyHandler is
                 .decimals();
 
             for (uint256 j; j < info.activeDirections.length(); j++) {
-                uint directionId = info.activeDirections.at(j);
+                uint256 directionId = info.activeDirections.at(j);
                 address directionStrategy = liquidityDirection[directionId]
                     .strategyAddress;
-                uint latestAmount = IAlluoStrategyV2(directionStrategy)
+                uint256 latestAmount = IAlluoStrategyV2(directionStrategy)
                     .getDeployedAmountAndRewards(
                         liquidityDirection[directionId].rewardsData
                     );
@@ -154,7 +154,7 @@ contract StrategyHandler is
                         (totalRewardsBalance * surplus) / totalRewards
                     );
 
-                    uint rewardsLeft = IERC20Upgradeable(primaryToken)
+                    uint256 rewardsLeft = IERC20Upgradeable(primaryToken)
                         .balanceOf(address(this));
                     IERC20Upgradeable(primaryToken).transfer(
                         executor,
@@ -207,12 +207,12 @@ contract StrategyHandler is
         for (uint256 i; i < numberOfAssets; i++) {
             uint256 newAmountDeployed;
             AssetInfo storage info = assetIdToAssetInfo[i];
-            uint activeDirectionsLength = info.activeDirections.length();
+            uint256 activeDirectionsLength = info.activeDirections.length();
             for (uint256 j; j < activeDirectionsLength; j++) {
-                uint directionId = info.activeDirections.at(j);
+                uint256 directionId = info.activeDirections.at(j);
                 address directionStrategy = liquidityDirection[directionId]
                     .strategyAddress;
-                uint latestAmount = IAlluoStrategyV2(directionStrategy)
+                uint256 latestAmount = IAlluoStrategyV2(directionStrategy)
                     .getDeployedAmount(
                         liquidityDirection[directionId].rewardsData
                     );
@@ -227,9 +227,9 @@ contract StrategyHandler is
     function getCurrentDeployed()
         external
         view
-        returns (uint[] memory amounts)
+        returns (uint256[] memory amounts)
     {
-        amounts = new uint[](numberOfAssets);
+        amounts = new uint256[](numberOfAssets);
 
         for (uint256 i; i < numberOfAssets; i++) {
             uint256 newAmountDeployed;
@@ -238,8 +238,9 @@ contract StrategyHandler is
                 LiquidityDirection memory direction = liquidityDirection[
                     info.activeDirections.at(j)
                 ];
-                uint latestAmount = IAlluoStrategyV2(direction.strategyAddress)
-                    .getDeployedAmount(direction.rewardsData);
+                uint256 latestAmount = IAlluoStrategyV2(
+                    direction.strategyAddress
+                ).getDeployedAmount(direction.rewardsData);
                 newAmountDeployed += latestAmount;
             }
             address primaryToken = info.chainIdToPrimaryToken[1];
@@ -262,18 +263,23 @@ contract StrategyHandler is
         }
     }
 
-    function getLatestDeployed() external view returns (uint[] memory amounts) {
-        amounts = new uint[](numberOfAssets);
+    function getLatestDeployed()
+        external
+        view
+        returns (uint256[] memory amounts)
+    {
+        amounts = new uint256[](numberOfAssets);
         for (uint256 i; i < numberOfAssets; i++) {
             amounts[i] = assetIdToAssetInfo[i].amountDeployed;
         }
     }
 
-    function adjustTreasury(
-        int256 _delta
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        assetIdToAssetInfo[0].amountDeployed = uint(
-            int(assetIdToAssetInfo[0].amountDeployed) + _delta
+    function adjustTreasury(int256 _delta)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        assetIdToAssetInfo[0].amountDeployed = uint256(
+            int256(assetIdToAssetInfo[0].amountDeployed) + _delta
         );
         if (_delta > 0) {
             address primaryToken = assetIdToAssetInfo[0].chainIdToPrimaryToken[
@@ -282,9 +288,10 @@ contract StrategyHandler is
             (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(
                 priceFeed
             ).getPrice(primaryToken, 0);
-            uint exactAmount = (uint(_delta) * 10 ** fiatDecimals) / fiatPrice;
+            uint256 exactAmount = (uint256(_delta) * 10**fiatDecimals) /
+                fiatPrice;
             uint256 tokenAmount = exactAmount /
-                10 ** (18 - IERC20MetadataUpgradeable(primaryToken).decimals());
+                10**(18 - IERC20MetadataUpgradeable(primaryToken).decimals());
             IERC20MetadataUpgradeable(primaryToken).safeTransferFrom(
                 gnosis,
                 executor,
@@ -297,23 +304,33 @@ contract StrategyHandler is
         );
     }
 
-    function getDirectionIdByName(
-        string memory _codeName
-    ) external view returns (uint256) {
+    function getDirectionIdByName(string memory _codeName)
+        external
+        view
+        returns (uint256)
+    {
         uint256 directionId = directionNameToId[_codeName];
         require(directionId != 0);
         return directionId;
     }
 
-    function getDirectionLatestAmount(
-        uint256 _id
-    ) external view returns (uint) {
+    function getDirectionLatestAmount(uint256 _id)
+        external
+        view
+        returns (uint256)
+    {
         return liquidityDirection[_id].latestAmount;
     }
 
-    function getLiquidityDirectionByName(
-        string memory _codeName
-    ) external view returns (uint256, address, LiquidityDirection memory) {
+    function getLiquidityDirectionByName(string memory _codeName)
+        external
+        view
+        returns (
+            uint256,
+            address,
+            LiquidityDirection memory
+        )
+    {
         uint256 directionId = directionNameToId[_codeName];
         require(directionId != 0);
         LiquidityDirection memory direction = liquidityDirection[directionId];
@@ -322,14 +339,20 @@ contract StrategyHandler is
         return (directionId, primaryToken, direction);
     }
 
-    function getAssetIdByDirectionId(uint256 _id) external view returns (uint) {
+    function getAssetIdByDirectionId(uint256 _id)
+        external
+        view
+        returns (uint256)
+    {
         require(_id != 0);
         return liquidityDirection[_id].assetId;
     }
 
-    function getDirectionFullInfoById(
-        uint256 _id
-    ) external view returns (address, LiquidityDirection memory) {
+    function getDirectionFullInfoById(uint256 _id)
+        external
+        view
+        returns (address, LiquidityDirection memory)
+    {
         require(_id != 0);
         LiquidityDirection memory direction = liquidityDirection[_id];
         address primaryToken = assetIdToAssetInfo[direction.assetId]
@@ -337,46 +360,51 @@ contract StrategyHandler is
         return (primaryToken, direction);
     }
 
-    function getLiquidityDirectionById(
-        uint256 _id
-    ) external view returns (LiquidityDirection memory) {
+    function getLiquidityDirectionById(uint256 _id)
+        external
+        view
+        returns (LiquidityDirection memory)
+    {
         require(_id != 0);
         return (liquidityDirection[_id]);
     }
 
-    function getPrimaryTokenByAssetId(
-        uint256 _id,
-        uint256 _chainId
-    ) external view returns (address) {
+    function getPrimaryTokenByAssetId(uint256 _id, uint256 _chainId)
+        external
+        view
+        returns (address)
+    {
         return (assetIdToAssetInfo[_id].chainIdToPrimaryToken[_chainId]);
     }
 
-    function setAssetAmount(
-        uint _id,
-        uint amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setAssetAmount(uint256 _id, uint256 amount)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         assetIdToAssetInfo[_id].amountDeployed = amount;
     }
 
-    function getAssetAmount(uint _id) external view returns (uint) {
+    function getAssetAmount(uint256 _id) external view returns (uint256) {
         return (assetIdToAssetInfo[_id].amountDeployed);
     }
 
-    function getAssetActiveIds(
-        uint256 _assetId
-    ) external view returns (uint256[] memory) {
+    function getAssetActiveIds(uint256 _assetId)
+        external
+        view
+        returns (uint256[] memory)
+    {
         return assetIdToAssetInfo[_assetId].activeDirections.values();
     }
 
     function getAllAssetActiveIds() external view returns (uint256[] memory) {
-        uint totalNumber;
+        uint256 totalNumber;
         for (uint256 i; i < numberOfAssets; i++) {
             totalNumber += assetIdToAssetInfo[i].activeDirections.length();
         }
         uint256[] memory ids = new uint256[](totalNumber);
-        uint counter;
+        uint256 counter;
         for (uint256 i = 0; i < numberOfAssets; i++) {
-            uint length = assetIdToAssetInfo[i].activeDirections.length();
+            uint256 length = assetIdToAssetInfo[i].activeDirections.length();
             for (uint256 j = 0; j < length; j++) {
                 ids[counter] = assetIdToAssetInfo[i].activeDirections.at(j);
                 counter++;
@@ -385,26 +413,29 @@ contract StrategyHandler is
         return ids;
     }
 
-    function addToActiveDirections(
-        uint256 _directionId
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addToActiveDirections(uint256 _directionId)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         assetIdToAssetInfo[liquidityDirection[_directionId].assetId]
             .activeDirections
             .add(_directionId);
     }
 
-    function removeFromActiveDirections(
-        uint256 _directionId
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeFromActiveDirections(uint256 _directionId)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         assetIdToAssetInfo[liquidityDirection[_directionId].assetId]
             .activeDirections
             .remove(_directionId);
         liquidityDirection[_directionId].latestAmount = 0;
     }
 
-    function setGnosis(
-        address _gnosisAddress
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setGnosis(address _gnosisAddress)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         gnosis = _gnosisAddress;
     }
 
@@ -412,21 +443,24 @@ contract StrategyHandler is
         lastTimeCalculated = block.timestamp;
     }
 
-    function setExchangeAddress(
-        address _newExchange
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setExchangeAddress(address _newExchange)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         exchangeAddress = _newExchange;
     }
 
-    function setBoosterAddress(
-        address _newBooster
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setBoosterAddress(address _newBooster)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         booster = _newBooster;
     }
 
-    function setExecutorAddress(
-        address _newExecutor
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setExecutorAddress(address _newExecutor)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         executor = _newExecutor;
     }
 
@@ -480,15 +514,17 @@ contract StrategyHandler is
         lastDirectionId++;
     }
 
-    function setLastDirectionId(
-        uint256 _newNumber
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setLastDirectionId(uint256 _newNumber)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         lastDirectionId = _newNumber;
     }
 
-    function changeNumberOfAssets(
-        uint8 _newNumber
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function changeNumberOfAssets(uint8 _newNumber)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         numberOfAssets = _newNumber;
     }
 
@@ -502,30 +538,34 @@ contract StrategyHandler is
         assetIdToAssetInfo[_assetId].ibAlluo = _ibAlluo;
         for (uint256 i; i < _chainIds.length; i++) {
             assetIdToAssetInfo[_assetId].chainIdToPrimaryToken[
-                _chainIds[i]
-            ] = _chainIdToPrimaryToken[i];
+                    _chainIds[i]
+                ] = _chainIdToPrimaryToken[i];
         }
     }
 
-    function grantRole(
-        bytes32 role,
-        address account
-    ) public override onlyRole(getRoleAdmin(role)) {
+    function grantRole(bytes32 role, address account)
+        public
+        override
+        onlyRole(getRoleAdmin(role))
+    {
         if (role == DEFAULT_ADMIN_ROLE) {
             require(account.isContract(), "Handler: Not contract");
         }
         _grantRole(role, account);
     }
 
-    function changeUpgradeStatus(
-        bool _status
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function changeUpgradeStatus(bool _status)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         upgradeStatus = _status;
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyRole(UPGRADER_ROLE) {
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyRole(UPGRADER_ROLE)
+    {
         require(upgradeStatus, "Executor: Upgrade not allowed");
         upgradeStatus = false;
     }
