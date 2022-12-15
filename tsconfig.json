@@ -7,6 +7,6 @@
     "outDir": "dist",
     "declaration": true
   },
-  "include": ["./scripts", "./test", "./typechain"],
+  "include": ["./scripts", "./test", "./typechain", "deprecatedtests/CurveHarvestEurStrategy.ts", "deprecatedtests/CurveFraxConvexStrategy.ts", "deprecatedtests/CurveConvexStrategy.ts", "deprecatedtests/BalancerStrategy.ts"],
   "files": ["./hardhat.config.ts"]
 }
