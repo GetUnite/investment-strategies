@@ -1,12 +1,25 @@
 {
-  "compilerOptions": {
-    "target": "es2018",
-    "module": "commonjs",
-    "strict": true,
-    "esModuleInterop": true,
-    "outDir": "dist",
-    "declaration": true
-  },
-  "include": ["./scripts", "./test", "./typechain", "deprecatedtests/CurveHarvestEurStrategy.ts", "deprecatedtests/CurveFraxConvexStrategy.ts", "deprecatedtests/CurveConvexStrategy.ts", "deprecatedtests/BalancerStrategy.ts"],
-  "files": ["./hardhat.config.ts"]
+    "compilerOptions": {
+        "declaration": true,
+        "esModuleInterop": true,
+        "module": "commonjs",
+        "outDir": "dist",
+        "strict": true,
+        "target": "es2018"
+    },
+    "exclude": [
+        "actions"
+    ],
+    "files": [
+        "./hardhat.config.ts"
+    ],
+    "include": [
+        "./scripts",
+        "./test",
+        "./typechain",
+        "deprecatedtests/CurveHarvestEurStrategy.ts",
+        "deprecatedtests/CurveFraxConvexStrategy.ts",
+        "deprecatedtests/CurveConvexStrategy.ts",
+        "deprecatedtests/BalancerStrategy.ts"
+    ]
 }

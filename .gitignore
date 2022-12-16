@@ -12,3 +12,7 @@ artifacts
 
 #Macbook files
 .DS_Store
+
+#tenderly
+actions
+tenderly.yaml

@@ -195,6 +195,39 @@ describe("CurveFraxConvex Strategies", function () {
 
             await checkSpread(balanceAfter, expectedBalance, 5);
         });
+
+        it("Should lock for longer", async () => {
+            const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
+            const amount = parseUnits("1000", await poolToken.decimals());
+
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool)
+
+            await poolToken.connect(signer).transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount);
+            await poolToken.connect(signer).transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount);
+            const balanceBefore = await poolToken.balanceOf(signer.address);
+
+            const receiver = signer.address;
+            await skipDays(10);
+
+            const blockInfo = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
+            const newEndingTs = blockInfo.timestamp + (60 * 60 * 24 * 8);
+            await strategy.investLonger(fraxPool, newEndingTs);
+            await skipDays(9);
+            await strategy.exitAll(exitData, 10000, poolToken.address, receiver, true, false);
+
+        });
+
+        it("Should revert locking for longer before entering the strategy", async () => {
+            const blockInfo = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
+            const newEndingTs = blockInfo.timestamp + (60 * 60 * 24 * 8);
+            const tx = strategy.investLonger(fraxPool, newEndingTs);
+            expect(tx).to.be.revertedWith("CurveConvexStrategyNativeV2: !invested");
+        });
+
         it("Should exit and send to the signer without swapping", async () => {
 
             const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
@@ -437,6 +470,24 @@ describe("CurveFraxConvex Strategies", function () {
             expect(balanceAfter).to.be.eq(balanceBefore);
 
         });
+
+        it("Should revert upgrading", async () => {
+
+            const strategyV2 = await ethers.getContractFactory("CurveFraxConvexStrategyV2");
+            const tx = upgrades.upgradeProxy(strategy.address, strategyV2, { unsafeAllow: ["delegatecall"] });
+            await expect(tx).to.be.reverted;
+        });
+
+        it("Should upgrade", async () => {
+
+            const strategyV2 = await ethers.getContractFactory("CurveFraxConvexStrategyV2");
+
+            await strategy.changeUpgradeStatus(true);
+            const tx1 = await strategy.upgradeStatus();
+            expect(tx1).to.be.true;
+            await upgrades.upgradeProxy(strategy.address, strategyV2, { unsafeAllow: ["delegatecall"] });
+        });
+
 
     });
 
