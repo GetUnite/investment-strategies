@@ -9,11 +9,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-import {IAlluoStrategyV2} from "../../../interfaces/IAlluoStrategyV2.sol";
+import {IAlluoStrategyV2} from "./interfaces/IAlluoStrategyV2.sol";
 import {ICvxBooster} from "./interfaces/ICvxBooster.sol";
 import {ICvxBaseRewardPool} from "./interfaces/ICvxBaseRewardPool.sol";
-import {IExchange} from "../../../interfaces/IExchange.sol";
-import {IPriceFeedRouterV2} from "../../../interfaces/IPriceFeedRouterV2.sol";
+import {IExchange} from "./interfaces/IExchange.sol";
+import {IPriceFeedRouterV2} from "./interfaces/IPriceFeedRouterV2.sol";
 
 contract CurveConvexStrategyV2 is
     IAlluoStrategyV2,
@@ -465,7 +465,7 @@ contract CurveConvexStrategyV2 is
         upgradeStatus = _status;
     }
 
-    function _authorizeUpgrade(address)
+    function _authorizeUpgrade(address newImplementation)
         internal
         override
         onlyRole(UPGRADER_ROLE)

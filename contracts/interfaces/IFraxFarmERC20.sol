@@ -23,11 +23,11 @@ interface IFraxFarmERC20 {
 
     function stakingToken() external view returns (address);
 
+    function lock_time_min() external view returns (uint256);
+
     function fraxPerLPToken() external view returns (uint256);
 
-    function calcCurCombinedWeight(
-        address account
-    )
+    function calcCurCombinedWeight(address account)
         external
         view
         returns (
@@ -36,27 +36,27 @@ interface IFraxFarmERC20 {
             uint256 new_combined_weight
         );
 
-    function lockedStakesOf(
-        address account
-    ) external view returns (LockedStake[] memory);
+    function lockedStakesOf(address account)
+        external
+        view
+        returns (LockedStake[] memory);
 
-    function lockedStakesOfLength(
-        address account
-    ) external view returns (uint256);
+    function lockedStakesOfLength(address account)
+        external
+        view
+        returns (uint256);
 
     function lockAdditional(bytes32 kek_id, uint256 addl_liq) external;
 
     function lockLonger(bytes32 kek_id, uint256 new_ending_ts) external;
 
-    function stakeLocked(
-        uint256 liquidity,
-        uint256 secs
-    ) external returns (bytes32);
+    function stakeLocked(uint256 liquidity, uint256 secs)
+        external
+        returns (bytes32);
 
-    function withdrawLocked(
-        bytes32 kek_id,
-        address destination_address
-    ) external returns (uint256);
+    function withdrawLocked(bytes32 kek_id, address destination_address)
+        external
+        returns (uint256);
 
     function withdrawLocked(bytes32 kek_id) external returns (uint256);
 
@@ -75,29 +75,34 @@ interface IFraxFarmERC20 {
 
     function lockMultiplier(uint256 secs) external view returns (uint256);
 
-    function rewardRates(
-        uint256 token_idx
-    ) external view returns (uint256 rwd_rate);
+    function rewardRates(uint256 token_idx)
+        external
+        view
+        returns (uint256 rwd_rate);
 
     function userStakedFrax(address account) external view returns (uint256);
 
-    function proxyStakedFrax(
-        address proxy_address
-    ) external view returns (uint256);
+    function proxyStakedFrax(address proxy_address)
+        external
+        view
+        returns (uint256);
 
     function maxLPForMaxBoost(address account) external view returns (uint256);
 
-    function minVeFXSForMaxBoost(
-        address account
-    ) external view returns (uint256);
+    function minVeFXSForMaxBoost(address account)
+        external
+        view
+        returns (uint256);
 
-    function minVeFXSForMaxBoostProxy(
-        address proxy_address
-    ) external view returns (uint256);
+    function minVeFXSForMaxBoostProxy(address proxy_address)
+        external
+        view
+        returns (uint256);
 
-    function veFXSMultiplier(
-        address account
-    ) external view returns (uint256 vefxs_multiplier);
+    function veFXSMultiplier(address account)
+        external
+        view
+        returns (uint256 vefxs_multiplier);
 
     function toggleValidVeFXSProxy(address proxy_address) external;
 
@@ -105,9 +110,9 @@ interface IFraxFarmERC20 {
 
     function stakerSetVeFXSProxy(address proxy_address) external;
 
-    function getReward(
-        address destination_address
-    ) external returns (uint256[] memory);
+    function getReward(address destination_address)
+        external
+        returns (uint256[] memory);
 
     function getReward(bool claim) external returns (uint256[] memory);
 
