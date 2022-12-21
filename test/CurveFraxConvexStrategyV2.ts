@@ -154,8 +154,8 @@ describe("CurveFraxConvex Strategies", function () {
                 [curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration]
             )
             const exit = defaultAbiCoder.encode(
-                ["address", "address", "uint8", "address", "bool"],
-                [curvePool, poolToken, tokenIndexInCurve, fraxPool, true]
+                ["address", "address", "uint8", "address", "bool", "uint256"],
+                [curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration]
             );
 
             expect(await strategy.encodeEntryParams(
@@ -163,7 +163,7 @@ describe("CurveFraxConvex Strategies", function () {
             )).to.be.equal(entry);
 
             expect(await strategy.encodeExitParams(
-                curvePool, poolToken, tokenIndexInCurve, fraxPool, true
+                curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration
             )).to.be.equal(exit);
 
             const entryStruct = await strategy.decodeEntryParams(entry);
@@ -181,6 +181,7 @@ describe("CurveFraxConvex Strategies", function () {
             expect(exitStruct[2]).to.be.equal(tokenIndexInCurve);
             expect(exitStruct[3]).to.be.equal(fraxPool);
             expect(exitStruct[4]).to.be.true;
+            expect(exitStruct[5]).to.be.equal(duration);
 
         });
 
@@ -190,7 +191,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -215,7 +216,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -247,7 +248,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -265,7 +266,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
             await skipDays(10);
@@ -289,7 +290,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
             await skipDays(10);
@@ -313,7 +314,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
             await skipDays(10);
@@ -343,7 +344,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
             const poolTokenBefore = await poolToken.balanceOf(receiver);
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -479,7 +480,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -606,8 +607,8 @@ describe("CurveFraxConvex Strategies", function () {
                 [curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration]
             )
             const exit = defaultAbiCoder.encode(
-                ["address", "address", "uint8", "address", "bool"],
-                [curvePool, poolToken, tokenIndexInCurve, fraxPool, true]
+                ["address", "address", "uint8", "address", "bool", "uint256"],
+                [curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration]
             );
 
             expect(await strategy.encodeEntryParams(
@@ -615,7 +616,7 @@ describe("CurveFraxConvex Strategies", function () {
             )).to.be.equal(entry);
 
             expect(await strategy.encodeExitParams(
-                curvePool, poolToken, tokenIndexInCurve, fraxPool, true
+                curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration
             )).to.be.equal(exit);
 
             const entryStruct = await strategy.decodeEntryParams(entry);
@@ -639,7 +640,7 @@ describe("CurveFraxConvex Strategies", function () {
             const receiver = signer.address;
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
 
             const balanceBefore = await wrappedEther.balanceOf(signer.address);
             await wrappedEther.transfer(strategy.address, amount);
@@ -660,7 +661,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
 
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -683,7 +684,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
 
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -707,7 +708,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
 
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -726,7 +727,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true);
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration);
             const exitRewardData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
 
             await wrappedEther.transfer(strategy.address, amount);
@@ -763,7 +764,7 @@ describe("CurveFraxConvex Strategies", function () {
             const receiver = signer.address;
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, false);
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, false, duration);
 
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount); // 1000 eth
@@ -782,14 +783,14 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, false);
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, false, duration);
 
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount); // 1000 eth
             await skipDays(10);
 
             await strategy.exitAll(exitData, 6000, outputCoin, receiver, true, false);
-            await strategy.lockInFraxPool(fraxPool, await stakingToken.balanceOf(strategy.address));
+            await strategy.lockInFraxPool(fraxPool, await stakingToken.balanceOf(strategy.address), duration);
 
             const newPosition = await fraxPoolContract.lockedLiquidityOf(strategy.address);
             expect(newPosition).to.be.gt(0);
@@ -801,7 +802,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
 
             const balanceBefore = await wrappedEther.balanceOf(signer.address);
             await wrappedEther.transfer(strategy.address, amount);
@@ -823,7 +824,7 @@ describe("CurveFraxConvex Strategies", function () {
         it("Should try to exit without investing", async () => {
 
             const receiver = signer.address;
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
 
             const tx = strategy.exitAll(exitData, 10000, outputCoin, receiver, false, false);
             expect(tx).to.be.ok;
@@ -889,7 +890,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
             const exitRewardData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
 
             await wrappedEther.transfer(strategy.address, amount);
@@ -917,7 +918,7 @@ describe("CurveFraxConvex Strategies", function () {
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
             const exitRewardData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
 
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);

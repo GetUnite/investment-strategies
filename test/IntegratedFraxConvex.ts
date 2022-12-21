@@ -109,7 +109,7 @@ describe("Automated strategy execution", function () {
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
             const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
-            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool);
+            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
 
             await handler.addLiquidityDirection(
                 _codeName,
@@ -139,7 +139,7 @@ describe("Automated strategy execution", function () {
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
             const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
-            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool);
+            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
 
             await handler.addLiquidityDirection(
                 _codeName,
@@ -151,7 +151,6 @@ describe("Automated strategy execution", function () {
                 _exitData,
                 _rewardsData
             );
-
 
             const executorBalanceBefore = await poolToken.balanceOf(executor.address);
             const request1 = await executor.callStatic.encodeLiquidityCommand(_codeName, 6000);
@@ -167,8 +166,7 @@ describe("Automated strategy execution", function () {
 
             const admin = await getImpersonatedSigner('0x1F020A4943EB57cd3b2213A66b355CB662Ea43C3');
             await executor.connect(admin).setMinSigns(0);
-            const id = executor.submittedData.length;
-            console.log(id);
+            // const id = executor.submittedData.length;
 
             await executor.executeSpecificData(3);
             const executorBalanceAter = await poolToken.balanceOf(executor.address);
@@ -185,7 +183,7 @@ describe("Automated strategy execution", function () {
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
             const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
-            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool);
+            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
 
             await handler.addLiquidityDirection(
                 _codeName,
@@ -229,6 +227,7 @@ describe("Automated strategy execution", function () {
             expect(txExit).to.be.revertedWith("Stake is still locked!");
 
         });
+
     });
 
     describe("Testing strategies with native ETH", function () {
@@ -270,7 +269,7 @@ describe("Automated strategy execution", function () {
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
             const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
-            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool);
+            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
             const amount = parseUnits("100", await poolToken.decimals());
 
             await handler.addLiquidityDirection(

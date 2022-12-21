@@ -72,8 +72,8 @@ contract CurveFraxConvexStrategyV2 is
         _grantRole(UPGRADER_ROLE, _multiSigWallet);
 
         // For tests only
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(UPGRADER_ROLE, msg.sender);
+        // _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        // _grantRole(UPGRADER_ROLE, msg.sender);
     }
 
     /// @notice Enters a Curve Pool that may use native ETH and stake it into Frax Convex for liquidity direction
@@ -103,6 +103,7 @@ contract CurveFraxConvexStrategyV2 is
             address(this)
         );
 
+        // step 1 - swap from WETH to ETH if pool token is ETH
         if (
             ICurvePool(curvePool).coins(tokenIndexInCurve) ==
             0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
@@ -111,7 +112,8 @@ contract CurveFraxConvexStrategyV2 is
         } else {
             IERC20(poolToken).safeIncreaseAllowance(curvePool, amount);
         }
-        // prepare amounts array for curve
+
+        // step 2 - prepare amounts array for curve
         uint256[4] memory fourPoolTokensAmount;
         fourPoolTokensAmount[tokenIndexInCurve] = amount;
 
@@ -154,7 +156,7 @@ contract CurveFraxConvexStrategyV2 is
             curvePool.functionCall(curveCall);
         }
 
-        // get the exact crvLpAmount worth of `amount` passed as a param
+        // step 3 - get the exact crvLpAmount worth of `amount` passed as a param, wrap them
         uint256 crvLpAmount = IERC20(crvLpToken).balanceOf(address(this)) -
             crvLpBalanceBefore;
         IERC20(crvLpToken).safeIncreaseAllowance(
@@ -170,7 +172,7 @@ contract CurveFraxConvexStrategyV2 is
             stakeTokenBalanceBefore;
         IERC20(stakeToken).safeIncreaseAllowance(fraxPool, fraxLpAmount);
 
-        // Now stake and lock these LP tokens into the frax farm.
+        // step 4 - stake and lock these LP tokens into the frax farm.
         // check if we have a position there already
         IFraxFarmERC20.LockedStake[] memory lockedstakes = IFraxFarmERC20(
             fraxPool
@@ -224,13 +226,60 @@ contract CurveFraxConvexStrategyV2 is
             address poolToken,
             uint8 tokenIndexInCurve,
             address fraxPool,
-            bool lockRemaining
+            bool lockRemaining,
+            uint256 nextDuration
         ) = decodeExitParams(data);
 
-        address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
+        uint256 lpAmountToWithdraw = _withdrawFromFrax(
+            fraxPool,
+            unwindPercent,
+            lockRemaining,
+            nextDuration
+        );
+        if (lpAmountToWithdraw == 0) return;
 
+        bytes memory curveCall = abi.encodeWithSignature(
+            "remove_liquidity_one_coin(uint256,int128,uint256)",
+            lpAmountToWithdraw,
+            tokenIndexInCurve,
+            0
+        );
+
+        if (
+            ICurvePool(curvePool).coins(tokenIndexInCurve) ==
+            0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+        ) {
+            uint256 valueETH = address(this).balance;
+            curvePool.functionCall(curveCall);
+            valueETH = address(this).balance - valueETH;
+            if (valueETH > 0) {
+                IWrappedEther(WETH).deposit{value: valueETH}();
+                poolToken = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+            }
+        } else {
+            curvePool.functionCall(curveCall);
+        }
+
+        _exchangeAll(IERC20(poolToken), IERC20(outputCoin));
+
+        if (shouldWithdrawRewards) {
+            _exitRewards(fraxPool, swapRewards, IERC20(outputCoin), receiver);
+        } else {
+            outputCoin.safeTransfer(
+                receiver,
+                outputCoin.balanceOf(address(this))
+            );
+        }
+    }
+
+    function _withdrawFromFrax(
+        address _fraxPool,
+        uint256 _unwindPercent,
+        bool _lockRemaining,
+        uint256 _nextDuration
+    ) internal returns (uint256) {
         IFraxFarmERC20.LockedStake[] memory lockedstakes = IFraxFarmERC20(
-            fraxPool
+            _fraxPool
         ).lockedStakesOf(address(this));
         require(
             lockedstakes.length != 0,
@@ -238,89 +287,53 @@ contract CurveFraxConvexStrategyV2 is
         );
 
         // step 1 - unlock wrapped lp tokens
-        IFraxFarmERC20(fraxPool).withdrawLocked(
+        IFraxFarmERC20(_fraxPool).withdrawLocked(
             lockedstakes[0].kek_id,
             address(this)
         );
 
-        {
-            if (unwindPercent != 10000 && lockRemaining) {
-                uint256 lpAmountToLock = (lockedstakes[0].liquidity *
-                    (10000 - unwindPercent)) / 10000;
-                _lockInFraxPool(fraxPool, lpAmountToLock);
-            }
-        }
-
         // step 2 - unwrap lp tokens
+        address stakeToken = IFraxFarmERC20(_fraxPool).stakingToken();
         uint256 lpAmountToWithdraw = (lockedstakes[0].liquidity *
-            unwindPercent) / 10000;
-        IConvexWrapper(stakeToken).withdrawAndUnwrap(lpAmountToWithdraw);
+            _unwindPercent) / 10000;
 
-        if (lpAmountToWithdraw == 0) return;
+        if (lpAmountToWithdraw != 0) {
+            IConvexWrapper(stakeToken).withdrawAndUnwrap(lpAmountToWithdraw);
 
-        // // step 3 - exit curve pool with coin that we used for entry
-        {
-            bytes memory curveCall = abi.encodeWithSignature(
-                "remove_liquidity_one_coin(uint256,int128,uint256)",
-                lpAmountToWithdraw,
-                tokenIndexInCurve,
-                0
-            );
-
-            if (
-                ICurvePool(curvePool).coins(tokenIndexInCurve) ==
-                0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
-            ) {
-                uint256 valueETH = address(this).balance;
-                curvePool.functionCall(curveCall);
-                valueETH = address(this).balance - valueETH;
-                if (valueETH > 0) {
-                    IWrappedEther(WETH).deposit{value: valueETH}();
-                    poolToken = address(
-                        0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-                    );
-                }
-            } else {
-                curvePool.functionCall(curveCall);
-            }
-        }
-
-        // step 4 - claim rewards if needed, execute exchanges and transfer all tokens to receiver
-        {
-            _exchangeAll(IERC20(poolToken), IERC20(outputCoin));
-
-            if (shouldWithdrawRewards) {
-                IConvexWrapper(stakeToken).getReward(
-                    address(this),
+            // step 3 - lock unwrapped staking token
+            if (_lockRemaining) {
+                uint256 lpAmountToLock = IERC20(stakeToken).balanceOf(
                     address(this)
-                ); // Get rewards from Curve
-                _manageRewardsAndWithdraw(
-                    swapRewards,
-                    IERC20(outputCoin),
-                    receiver
                 );
-            } else {
-                outputCoin.safeTransfer(
-                    receiver,
-                    outputCoin.balanceOf(address(this))
-                );
+                _lockInFraxPool(_fraxPool, lpAmountToLock, _nextDuration);
             }
+            return lpAmountToWithdraw;
+        } else {
+            return 0;
         }
     }
 
-    function _lockInFraxPool(address _fraxPool, uint256 _amount) internal {
+    function _lockInFraxPool(
+        address _fraxPool,
+        uint256 _amount,
+        uint256 _duration
+    ) internal {
         address stakeToken = IFraxFarmERC20(_fraxPool).stakingToken();
         IERC20(stakeToken).safeIncreaseAllowance(_fraxPool, _amount);
-        uint256 minLockTime = IFraxFarmERC20(_fraxPool).lock_time_min();
 
-        IFraxFarmERC20(_fraxPool).stakeLocked(_amount, minLockTime);
+        IFraxFarmERC20(_fraxPool).stakeLocked(_amount, _duration);
     }
 
-    function lockInFraxPool(address _fraxPool, uint256 _amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        _lockInFraxPool(_fraxPool, _amount);
+    /// @notice Locks wrapped curve Lp tokens into frax pool
+    /// @param _fraxPool address of frax pool to lock tokens in
+    /// @param _amount Amount of wrapped lp tokens to lock
+    /// @param _duration Duration of locking period in sec, minimum is 594000 (approx 7 days)
+    function lockInFraxPool(
+        address _fraxPool,
+        uint256 _amount,
+        uint256 _duration
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _lockInFraxPool(_fraxPool, _amount, _duration);
     }
 
     /// @notice Calculates the current LP position in Convex in terms of a specific asset and claims rewards
@@ -380,11 +393,19 @@ contract CurveFraxConvexStrategyV2 is
         address receiver,
         bool swapRewards
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        (, , , address fraxPool, ) = decodeExitParams(data);
+        (, , , address fraxPool, , ) = decodeExitParams(data);
 
         // Get rewards from Frax
         IFraxFarmERC20(fraxPool).getReward(address(this));
+        _exitRewards(fraxPool, swapRewards, IERC20(outputCoin), receiver);
+    }
 
+    function _exitRewards(
+        address fraxPool,
+        bool swapRewards,
+        IERC20 outputCoin,
+        address receiver
+    ) internal {
         // Get rewards from Convex
         address stakeToken = IFraxFarmERC20(fraxPool).stakingToken();
         IConvexWrapper(stakeToken).getReward(address(this));
@@ -535,7 +556,8 @@ contract CurveFraxConvexStrategyV2 is
         address poolToken,
         uint8 tokenIndexInCurve,
         address fraxPool,
-        bool lockRemaining
+        bool lockRemaining,
+        uint256 nextDuration
     ) public pure returns (bytes memory) {
         return
             abi.encode(
@@ -543,7 +565,8 @@ contract CurveFraxConvexStrategyV2 is
                 poolToken,
                 tokenIndexInCurve,
                 fraxPool,
-                lockRemaining
+                lockRemaining,
+                nextDuration
             );
     }
 
@@ -575,11 +598,13 @@ contract CurveFraxConvexStrategyV2 is
             address,
             uint8,
             address,
-            bool
+            bool,
+            uint256
         )
     {
-        require(data.length == 32 * 5, "FraxConvexStrategyV2: length ex");
-        return abi.decode(data, (address, address, uint8, address, bool));
+        require(data.length == 32 * 6, "FraxConvexStrategyV2: length ex");
+        return
+            abi.decode(data, (address, address, uint8, address, bool, uint256));
     }
 
     function encodeRewardsParams(
