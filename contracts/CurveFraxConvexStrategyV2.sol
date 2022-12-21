@@ -181,11 +181,8 @@ contract CurveFraxConvexStrategyV2 is
         if (lockedstakes.length == 1) {
             bytes32 kek_id = lockedstakes[0].kek_id;
             IFraxFarmERC20(fraxPool).lockAdditional(kek_id, fraxLpAmount);
-        } else {
-            bytes32 kek_id = IFraxFarmERC20(fraxPool).stakeLocked(
-                fraxLpAmount,
-                duration
-            );
+        } else if (lockedstakes.length == 0) {
+            IFraxFarmERC20(fraxPool).stakeLocked(fraxLpAmount, duration);
         }
     }
 
