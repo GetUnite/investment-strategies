@@ -91,14 +91,13 @@ describe("Automated strategy execution", function () {
             const Strategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2");
             const routerAddress = "0x24733D6EBdF1DA157d2A491149e316830443FC00"
             strategy = await upgrades.deployProxy(Strategy,
-                [signers[0].address, ZERO_ADDR, ZERO_ADDR, routerAddress], {
+                [signers[0].address, "0x82e568c482df2c833dab0d38deb9fb01777a9e89", "0x385ab598e7dbf09951ba097741d2fa573bde94a5", routerAddress], {
                 initializer: 'initialize',
                 kind: 'uups',
                 unsafeAllow: ["delegatecall"]
             }
             ) as CurveFraxConvexStrategyV2
 
-            await strategy.grantRole("0x0000000000000000000000000000000000000000000000000000000000000000", "0x82e568c482df2c833dab0d38deb9fb01777a9e89");
             handler = await ethers.getContractAt("IStrategyHandler", "0x385AB598E7DBF09951ba097741d2Fa573bDe94A5") as IStrategyHandler;
             executor = await ethers.getContractAt("IVoteExecutorMaster", "0x82e568C482dF2C833dab0D38DeB9fb01777A9e89") as IVoteExecutorMaster;
             poolToken = await ethers.getContractAt("IERC20Metadata", _entryToken);
@@ -250,7 +249,7 @@ describe("Automated strategy execution", function () {
             const Strategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2");
             const routerAddress = "0x24733D6EBdF1DA157d2A491149e316830443FC00"
             strategy = await upgrades.deployProxy(Strategy,
-                [signers[0].address, ZERO_ADDR, ZERO_ADDR, routerAddress], {
+                [signers[0].address, "0x82e568c482df2c833dab0d38deb9fb01777a9e89", "0x385ab598e7dbf09951ba097741d2fa573bde94a5", routerAddress], {
                 initializer: 'initialize',
                 kind: 'uups',
                 unsafeAllow: ["delegatecall"]
@@ -305,10 +304,70 @@ describe("Automated strategy execution", function () {
             await executor.connect(admin).executeDeposits();
             console.log('\nDeposit executed!\n');
         });
+        it("Should invest into ETH/frxETH pool twice", async () => {
+
+            const _entryData = await strategy.encodeEntryParams(
+                curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
+            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
+            await handler.addLiquidityDirection(
+                _codeName,
+                strategy.address,
+                _entryToken,
+                _assetId,
+                _chainId,
+                _entryData,
+                _exitData,
+                _rewardsData
+            );
+            const executorBalanceBefore = await poolToken.balanceOf(executor.address);
+            const rq1 = await executor.callStatic.encodeLiquidityCommand(_codeName, 6000);
+            const rq2 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex stETH+ETH", 4000);
+            const rq3 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex alETH+ETH", 0);
+            const encodedMmessages = await executor.callStatic.encodeAllMessages([rq1[0], rq2[0], rq3[0]], [rq1[1], rq2[1], rq3[1]]);
+            const inputData = encodedMmessages[2];
+            await executor.submitData(inputData);
+            const admin = await getImpersonatedSigner('0x1F020A4943EB57cd3b2213A66b355CB662Ea43C3');
+            await executor.connect(admin).setMinSigns(0);
+
+            await executor.executeSpecificData(3);
+            const executorBalanceAter = await poolToken.balanceOf(executor.address);
+
+            console.log('Balance of executor before investing',
+                ethers.utils.formatEther(executorBalanceBefore), "balance after withdrawal: ",
+                ethers.utils.formatEther(executorBalanceAter),
+                '\n**********************************');
+            await executor.connect(admin).executeDeposits();
+            console.log('\nDeposit 1 executed!\n');
+
+
+
+            console.log("Second cycle:");
+
+
+            const executorBalanceBefore2 = await poolToken.balanceOf(executor.address);
+            const rq4 = await executor.callStatic.encodeLiquidityCommand(_codeName, 10000);
+            const rq5 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex stETH+ETH", 0);
+            const encodedMmessages2 = await executor.callStatic.encodeAllMessages([rq4[0], rq5[0]], [rq4[1], rq5[1]]);
+            const inputData2 = encodedMmessages2[2];
+            await executor.submitData(inputData2);
+
+            await executor.executeSpecificData(4);
+            const executorBalanceAter2 = await poolToken.balanceOf(executor.address);
+
+            console.log('Balance of executor before investing',
+                ethers.utils.formatEther(executorBalanceBefore2), "balance after withdrawal: ",
+                ethers.utils.formatEther(executorBalanceAter2),
+                '\n**********************************');
+            await executor.connect(admin).executeDeposits();
+            console.log('\nDeposit 1 executed!\n');
+
+
+
+        });
 
     });
 
-    // Extend a locking period - add an admin function for that.
 
 });
 
