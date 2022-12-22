@@ -271,7 +271,6 @@ describe("Automated strategy execution", function () {
             const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
             const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
             const amount = parseUnits("100", await poolToken.decimals());
-
             await handler.addLiquidityDirection(
                 _codeName,
                 strategy.address,
@@ -286,11 +285,10 @@ describe("Automated strategy execution", function () {
 
             const executorBalanceBefore = await poolToken.balanceOf(executor.address);
             const rq1 = await executor.callStatic.encodeLiquidityCommand(_codeName, 6000);
-            const rq2 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex Mim+3CRV", 4000);
-            // const rq3 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex Mim+3CRV", 0);
-            // const rq4 = await executor.callStatic.encodeLiquidityCommand(_codeName, 0);
+            const rq2 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex stETH+ETH", 4000);
+            const rq3 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex alETH+ETH", 0);
 
-            const encodedMmessages = await executor.callStatic.encodeAllMessages([rq1[0], rq2[0]], [rq1[1], rq2[1]]);
+            const encodedMmessages = await executor.callStatic.encodeAllMessages([rq1[0], rq2[0], rq3[0]], [rq1[1], rq2[1], rq3[1]]);
             const inputData = encodedMmessages[2];
             await executor.submitData(inputData);
 
@@ -298,7 +296,6 @@ describe("Automated strategy execution", function () {
             await executor.connect(admin).setMinSigns(0);
 
             await executor.executeSpecificData(3);
-            await poolToken.transfer(executor.address, amount);
             const executorBalanceAter = await poolToken.balanceOf(executor.address);
 
             console.log('Balance of executor before investing',
