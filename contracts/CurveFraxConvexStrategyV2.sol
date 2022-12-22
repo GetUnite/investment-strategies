@@ -294,20 +294,17 @@ contract CurveFraxConvexStrategyV2 is
         uint256 lpAmountToWithdraw = (lockedstakes[0].liquidity *
             _unwindPercent) / 10000;
 
-        if (lpAmountToWithdraw != 0) {
-            IConvexWrapper(stakeToken).withdrawAndUnwrap(lpAmountToWithdraw);
+        if (lpAmountToWithdraw == 0) return 0;
+        IConvexWrapper(stakeToken).withdrawAndUnwrap(lpAmountToWithdraw);
 
-            // step 3 - lock unwrapped staking token
-            if (_lockRemaining) {
-                uint256 lpAmountToLock = IERC20(stakeToken).balanceOf(
-                    address(this)
-                );
-                _lockInFraxPool(_fraxPool, lpAmountToLock, _nextDuration);
-            }
-            return lpAmountToWithdraw;
-        } else {
-            return 0;
+        // step 3 - lock unwrapped staking token
+        if (_lockRemaining) {
+            uint256 lpAmountToLock = IERC20(stakeToken).balanceOf(
+                address(this)
+            );
+            _lockInFraxPool(_fraxPool, lpAmountToLock, _nextDuration);
         }
+        return lpAmountToWithdraw;
     }
 
     function _lockInFraxPool(

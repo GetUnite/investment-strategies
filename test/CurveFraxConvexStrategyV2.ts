@@ -821,16 +821,6 @@ describe("CurveFraxConvex Strategies", function () {
 
         });
 
-        it("Should try to exit without investing", async () => {
-
-            const receiver = signer.address;
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
-
-            const tx = strategy.exitAll(exitData, 10000, outputCoin, receiver, false, false);
-            expect(tx).to.be.ok;
-
-        });
-
         it("Should return LP position in fiat", async () => {
 
             const lpToken = "0xf43211935c781d5ca1a41d2041f397b8a7366c7a";
