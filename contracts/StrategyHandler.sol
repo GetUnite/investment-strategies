@@ -101,10 +101,10 @@ contract StrategyHandler is
                 .decimals();
 
             for (uint256 j; j < info.activeDirections.length(); j++) {
-                uint directionId = info.activeDirections.at(j);
+                uint256 directionId = info.activeDirections.at(j);
                 address directionStrategy = liquidityDirection[directionId]
                     .strategyAddress;
-                uint latestAmount = IAlluoStrategyV2(directionStrategy)
+                uint256 latestAmount = IAlluoStrategyV2(directionStrategy)
                     .getDeployedAmountAndRewards(
                         liquidityDirection[directionId].rewardsData
                     );
@@ -154,7 +154,7 @@ contract StrategyHandler is
                         (totalRewardsBalance * surplus) / totalRewards
                     );
 
-                    uint rewardsLeft = IERC20Upgradeable(primaryToken)
+                    uint256 rewardsLeft = IERC20Upgradeable(primaryToken)
                         .balanceOf(address(this));
                     IERC20Upgradeable(primaryToken).transfer(
                         executor,
@@ -207,12 +207,12 @@ contract StrategyHandler is
         for (uint256 i; i < numberOfAssets; i++) {
             uint256 newAmountDeployed;
             AssetInfo storage info = assetIdToAssetInfo[i];
-            uint activeDirectionsLength = info.activeDirections.length();
+            uint256 activeDirectionsLength = info.activeDirections.length();
             for (uint256 j; j < activeDirectionsLength; j++) {
-                uint directionId = info.activeDirections.at(j);
+                uint256 directionId = info.activeDirections.at(j);
                 address directionStrategy = liquidityDirection[directionId]
                     .strategyAddress;
-                uint latestAmount = IAlluoStrategyV2(directionStrategy)
+                uint256 latestAmount = IAlluoStrategyV2(directionStrategy)
                     .getDeployedAmount(
                         liquidityDirection[directionId].rewardsData
                     );
@@ -227,9 +227,9 @@ contract StrategyHandler is
     function getCurrentDeployed()
         external
         view
-        returns (uint[] memory amounts)
+        returns (uint256[] memory amounts)
     {
-        amounts = new uint[](numberOfAssets);
+        amounts = new uint256[](numberOfAssets);
 
         for (uint256 i; i < numberOfAssets; i++) {
             uint256 newAmountDeployed;
@@ -238,8 +238,9 @@ contract StrategyHandler is
                 LiquidityDirection memory direction = liquidityDirection[
                     info.activeDirections.at(j)
                 ];
-                uint latestAmount = IAlluoStrategyV2(direction.strategyAddress)
-                    .getDeployedAmount(direction.rewardsData);
+                uint256 latestAmount = IAlluoStrategyV2(
+                    direction.strategyAddress
+                ).getDeployedAmount(direction.rewardsData);
                 newAmountDeployed += latestAmount;
             }
             address primaryToken = info.chainIdToPrimaryToken[1];
@@ -262,8 +263,12 @@ contract StrategyHandler is
         }
     }
 
-    function getLatestDeployed() external view returns (uint[] memory amounts) {
-        amounts = new uint[](numberOfAssets);
+    function getLatestDeployed()
+        external
+        view
+        returns (uint256[] memory amounts)
+    {
+        amounts = new uint256[](numberOfAssets);
         for (uint256 i; i < numberOfAssets; i++) {
             amounts[i] = assetIdToAssetInfo[i].amountDeployed;
         }
@@ -272,8 +277,8 @@ contract StrategyHandler is
     function adjustTreasury(
         int256 _delta
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        assetIdToAssetInfo[0].amountDeployed = uint(
-            int(assetIdToAssetInfo[0].amountDeployed) + _delta
+        assetIdToAssetInfo[0].amountDeployed = uint256(
+            int256(assetIdToAssetInfo[0].amountDeployed) + _delta
         );
         if (_delta > 0) {
             address primaryToken = assetIdToAssetInfo[0].chainIdToPrimaryToken[
@@ -282,7 +287,8 @@ contract StrategyHandler is
             (uint256 fiatPrice, uint8 fiatDecimals) = IPriceFeedRouterV2(
                 priceFeed
             ).getPrice(primaryToken, 0);
-            uint exactAmount = (uint(_delta) * 10 ** fiatDecimals) / fiatPrice;
+            uint256 exactAmount = (uint256(_delta) * 10 ** fiatDecimals) /
+                fiatPrice;
             uint256 tokenAmount = exactAmount /
                 10 ** (18 - IERC20MetadataUpgradeable(primaryToken).decimals());
             IERC20MetadataUpgradeable(primaryToken).safeTransferFrom(
@@ -307,7 +313,7 @@ contract StrategyHandler is
 
     function getDirectionLatestAmount(
         uint256 _id
-    ) external view returns (uint) {
+    ) external view returns (uint256) {
         return liquidityDirection[_id].latestAmount;
     }
 
@@ -322,7 +328,9 @@ contract StrategyHandler is
         return (directionId, primaryToken, direction);
     }
 
-    function getAssetIdByDirectionId(uint256 _id) external view returns (uint) {
+    function getAssetIdByDirectionId(
+        uint256 _id
+    ) external view returns (uint256) {
         require(_id != 0);
         return liquidityDirection[_id].assetId;
     }
@@ -352,13 +360,13 @@ contract StrategyHandler is
     }
 
     function setAssetAmount(
-        uint _id,
-        uint amount
+        uint256 _id,
+        uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         assetIdToAssetInfo[_id].amountDeployed = amount;
     }
 
-    function getAssetAmount(uint _id) external view returns (uint) {
+    function getAssetAmount(uint256 _id) external view returns (uint256) {
         return (assetIdToAssetInfo[_id].amountDeployed);
     }
 
@@ -369,14 +377,14 @@ contract StrategyHandler is
     }
 
     function getAllAssetActiveIds() external view returns (uint256[] memory) {
-        uint totalNumber;
+        uint256 totalNumber;
         for (uint256 i; i < numberOfAssets; i++) {
             totalNumber += assetIdToAssetInfo[i].activeDirections.length();
         }
         uint256[] memory ids = new uint256[](totalNumber);
-        uint counter;
+        uint256 counter;
         for (uint256 i = 0; i < numberOfAssets; i++) {
-            uint length = assetIdToAssetInfo[i].activeDirections.length();
+            uint256 length = assetIdToAssetInfo[i].activeDirections.length();
             for (uint256 j = 0; j < length; j++) {
                 ids[counter] = assetIdToAssetInfo[i].activeDirections.at(j);
                 counter++;
@@ -524,7 +532,7 @@ contract StrategyHandler is
     }
 
     function _authorizeUpgrade(
-        address newImplementation
+        address
     ) internal override onlyRole(UPGRADER_ROLE) {
         require(upgradeStatus, "Executor: Upgrade not allowed");
         upgradeStatus = false;
