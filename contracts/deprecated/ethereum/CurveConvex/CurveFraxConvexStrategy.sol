@@ -33,11 +33,7 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
 
     receive() external payable {}
 
-    constructor(
-        address voteExecutor,
-        address gnosis,
-        bool isTesting
-    ) {
+    constructor(address voteExecutor, address gnosis, bool isTesting) {
         if (isTesting) _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         else {
             require(
@@ -50,11 +46,10 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
         }
     }
 
-    function invest(bytes calldata data, uint256 amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        returns (bytes memory)
-    {
+    function invest(
+        bytes calldata data,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bytes memory) {
         (
             address curvePool,
             IERC20 crvLpToken,
@@ -178,7 +173,7 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
                 (IERC20(IFraxFarmERC20(fraxPool).stakingToken()).balanceOf(
                     address(this)
                 ) * unwindPercent) /
-                (10**(2 + unwindDecimals));
+                (10 ** (2 + unwindDecimals));
 
             IConvexWrapper(IFraxFarmERC20(fraxPool).stakingToken())
                 .withdrawAndUnwrap(lpAmount);
@@ -295,7 +290,9 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
             );
     }
 
-    function decodeEntryParams(bytes calldata data)
+    function decodeEntryParams(
+        bytes calldata data
+    )
         public
         pure
         returns (
@@ -328,18 +325,12 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
             );
     }
 
-    function decodeExitParams(bytes calldata data)
+    function decodeExitParams(
+        bytes calldata data
+    )
         public
         pure
-        returns (
-            address,
-            IERC20,
-            IERC20,
-            uint8,
-            uint256,
-            address,
-            bytes32
-        )
+        returns (address, IERC20, IERC20, uint8, uint256, address, bytes32)
     {
         require(data.length == 32 * 7, "CurveConvexStrategy: length ex");
         return
@@ -381,11 +372,9 @@ contract CurveFraxConvexStrategy is AccessControl, IAlluoStrategy {
         outputCoin.safeTransfer(receiver, outputCoin.balanceOf(address(this)));
     }
 
-    function getCvxRewardPool(uint256 poolId)
-        private
-        view
-        returns (ICvxBaseRewardPool)
-    {
+    function getCvxRewardPool(
+        uint256 poolId
+    ) private view returns (ICvxBaseRewardPool) {
         (, , , address pool, , ) = cvxBooster.poolInfo(poolId);
         return ICvxBaseRewardPool(pool);
     }
