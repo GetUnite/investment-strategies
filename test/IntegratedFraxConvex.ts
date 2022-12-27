@@ -184,6 +184,10 @@ describe("Automated strategy execution", function () {
             const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
             const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
 
+            console.log(`ENTRY PARAMS: ${_entryData}\n`);
+            console.log(`EXIT PARAMS: ${_exitData}\n`);
+            console.log(`REWARDS PARAMS: ${_rewardsData}\n`);
+
             await handler.addLiquidityDirection(
                 _codeName,
                 strategy.address,
@@ -310,6 +314,11 @@ describe("Automated strategy execution", function () {
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
             const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
             const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
+
+            console.log(`ENTRY PARAMS: ${_entryData}\n`);
+            console.log(`EXIT PARAMS: ${_exitData}\n`);
+            console.log(`REWARDS PARAMS: ${_rewardsData}\n`);
+
             await handler.addLiquidityDirection(
                 _codeName,
                 strategy.address,

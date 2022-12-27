@@ -19,6 +19,8 @@ import {IFraxFarmERC20} from "./interfaces/IFraxFarmERC20.sol";
 import {ICurvePool} from "./interfaces/ICurvePool.sol";
 import {IConvexWrapper} from "./interfaces/IConvexWrapper.sol";
 
+// import "hardhat/console.sol";
+
 contract CurveFraxConvexStrategyV2 is
     IAlluoStrategyV2,
     Initializable,
@@ -80,10 +82,10 @@ contract CurveFraxConvexStrategyV2 is
     /// @dev Same logic as the CurveConvexStrategyV2, but with additional support for native ETH
     /// @param data Payload containing necessary information to enter a curve pool and stake into frax.convex
     /// @param amount Amount of poolToken to enter curve with
-    function invest(
-        bytes calldata data,
-        uint256 amount
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function invest(bytes calldata data, uint256 amount)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         (
             address curvePool,
             address poolToken,
@@ -186,10 +188,10 @@ contract CurveFraxConvexStrategyV2 is
         }
     }
 
-    function investLonger(
-        address _fraxpool,
-        uint256 newEndingTs
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function investLonger(address _fraxpool, uint256 newEndingTs)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         IFraxFarmERC20.LockedStake[] memory lockedstakes = IFraxFarmERC20(
             _fraxpool
         ).lockedStakesOf(address(this));
@@ -295,6 +297,7 @@ contract CurveFraxConvexStrategyV2 is
             _unwindPercent) / 10000;
 
         if (lpAmountToWithdraw == 0) return 0;
+
         IConvexWrapper(stakeToken).withdrawAndUnwrap(lpAmountToWithdraw);
 
         // step 3 - lock unwrapped staking token
@@ -302,7 +305,10 @@ contract CurveFraxConvexStrategyV2 is
             uint256 lpAmountToLock = IERC20(stakeToken).balanceOf(
                 address(this)
             );
-            _lockInFraxPool(_fraxPool, lpAmountToLock, _nextDuration);
+            if (lpAmountToLock != 0) {
+                // console.log(lpAmountToLock);
+                _lockInFraxPool(_fraxPool, lpAmountToLock, _nextDuration);
+            }
         }
         return lpAmountToWithdraw;
     }
@@ -334,9 +340,11 @@ contract CurveFraxConvexStrategyV2 is
     /// @dev Called by the Vote Executor, this is used in the process of calculating the current position in Convex for Alluo staking reward calculations
     /// @param data Contains Convex pool data as well as the asset the function should return the value in.
     /// @return uint256 amount of the position valued in assetId price.
-    function getDeployedAmountAndRewards(
-        bytes calldata data
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256) {
+    function getDeployedAmountAndRewards(bytes calldata data)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        returns (uint256)
+    {
         (
             address lpToken,
             address fraxPool,
@@ -366,9 +374,10 @@ contract CurveFraxConvexStrategyV2 is
     /// @notice Swaps rewards to "token" and sends it to the Vote Executor
     /// @dev Swaps existing rewards already claimed to the token. This does not claim from convex.
     /// @param _token The token we expect to receive rewards in
-    function withdrawRewards(
-        address _token
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function withdrawRewards(address _token)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _manageRewardsAndWithdraw(true, IERC20(_token), msg.sender);
     }
 
@@ -407,10 +416,10 @@ contract CurveFraxConvexStrategyV2 is
     /// @dev Important when claiming/ swapping all rewards to output coin
     /// @param _newToken token address to add/remove
     /// @param _status whether to add or remove
-    function changeAdditionalRewardTokenStatus(
-        address _newToken,
-        bool _status
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function changeAdditionalRewardTokenStatus(address _newToken, bool _status)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         if (_status) {
             additionalRewards.add(_newToken);
         } else {
@@ -422,9 +431,11 @@ contract CurveFraxConvexStrategyV2 is
     /// @dev Used as a view function to track positions
     /// @param data contains information of the convex pool and the assetId to return the value of the position.
     /// @return value of the current position described by data
-    function getDeployedAmount(
-        bytes calldata data
-    ) external view returns (uint256) {
+    function getDeployedAmount(bytes calldata data)
+        external
+        view
+        returns (uint256)
+    {
         (
             address lpToken, // can be acceesed as IConvexStaking(IFraxFarmERC20(frax).stakingToken()).curvetoken()
             address fraxPool,
@@ -559,9 +570,18 @@ contract CurveFraxConvexStrategyV2 is
             );
     }
 
-    function decodeEntryParams(
-        bytes calldata data
-    ) public pure returns (address, address, uint8, uint8, address, uint256) {
+    function decodeEntryParams(bytes calldata data)
+        public
+        pure
+        returns (
+            address,
+            address,
+            uint8,
+            uint8,
+            address,
+            uint256
+        )
+    {
         require(data.length == 32 * 6, "FraxConvexStrategyV2: length en");
         return
             abi.decode(
@@ -570,9 +590,18 @@ contract CurveFraxConvexStrategyV2 is
             );
     }
 
-    function decodeExitParams(
-        bytes calldata data
-    ) public pure returns (address, address, uint8, address, bool, uint256) {
+    function decodeExitParams(bytes calldata data)
+        public
+        pure
+        returns (
+            address,
+            address,
+            uint8,
+            address,
+            bool,
+            uint256
+        )
+    {
         require(data.length == 32 * 6, "FraxConvexStrategyV2: length ex");
         return
             abi.decode(data, (address, address, uint8, address, bool, uint256));
@@ -586,29 +615,39 @@ contract CurveFraxConvexStrategyV2 is
         return abi.encode(lpToken, fraxPool, assetId);
     }
 
-    function decodeRewardsParams(
-        bytes calldata data
-    ) public pure returns (address, address, uint256) {
+    function decodeRewardsParams(bytes calldata data)
+        public
+        pure
+        returns (
+            address,
+            address,
+            uint256
+        )
+    {
         require(data.length == 32 * 3, "FraxConvexStrategyV2: length ex");
         return abi.decode(data, (address, address, uint256));
     }
 
-    function grantRole(
-        bytes32 role,
-        address account
-    ) public override onlyRole(getRoleAdmin(role)) {
+    function grantRole(bytes32 role, address account)
+        public
+        override
+        onlyRole(getRoleAdmin(role))
+    {
         _grantRole(role, account);
     }
 
-    function changeUpgradeStatus(
-        bool _status
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function changeUpgradeStatus(bool _status)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         upgradeStatus = _status;
     }
 
-    function _authorizeUpgrade(
-        address
-    ) internal override onlyRole(UPGRADER_ROLE) {
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyRole(UPGRADER_ROLE)
+    {
         require(upgradeStatus, "Executor: Upgrade not allowed");
         upgradeStatus = false;
     }
