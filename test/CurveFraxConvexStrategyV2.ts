@@ -57,7 +57,7 @@ describe("CurveFraxConvex Strategies", function () {
                     enabled: true,
                     jsonRpcUrl: process.env.MAINNET_FORKING_URL as string,
                     //you can fork from last block by commenting next line
-                    blockNumber: 16169577,
+                    blockNumber: 16375463,
                 },
             },],
         });
@@ -195,6 +195,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
+            await skipDays(0.5);
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
             const balanceBefore = await poolToken.balanceOf(signer.address);
@@ -220,6 +221,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
+            await skipDays(0.5);
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
             const balanceBefore = await poolToken.balanceOf(signer.address);
@@ -648,7 +650,7 @@ describe("CurveFraxConvex Strategies", function () {
             const balanceBefore = await wrappedEther.balanceOf(signer.address);
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
-
+            await skipDays(0.5);
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
 

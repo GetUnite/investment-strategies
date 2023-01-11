@@ -75,8 +75,8 @@ contract CurveFraxConvexStrategyV2 is
         _grantRole(UPGRADER_ROLE, _multiSigWallet);
 
         // For tests only
-        // _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        // _grantRole(UPGRADER_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(UPGRADER_ROLE, msg.sender);
     }
 
     /// @notice Enters a Curve Pool that may use native ETH and stake it into Frax Convex for liquidity direction
@@ -184,6 +184,10 @@ contract CurveFraxConvexStrategyV2 is
         if (lockedstakes.length == 1) {
             bytes32 kek_id = lockedstakes[0].kek_id;
             IFraxFarmERC20(fraxPool).lockAdditional(kek_id, fraxLpAmount);
+            IFraxFarmERC20(fraxPool).lockLonger(
+                kek_id,
+                block.timestamp + duration
+            ); // lock_time_min = 594000 in frax pool
         } else if (lockedstakes.length == 0) {
             IFraxFarmERC20(fraxPool).stakeLocked(fraxLpAmount, duration);
         }

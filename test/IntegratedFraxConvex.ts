@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers, network, upgrades } from "hardhat";
-import { CurveFraxConvexStrategyV2, IERC20Metadata, IExchange, IStrategyHandler, IVoteExecutorMaster, IWrappedEther } from "../typechain";
+import { CurveFraxConvexStrategyV2, IERC20Metadata, IExchange, IStrategyHandler, IVoteExecutorMaster, IWrappedEther, IFraxFarmERC20 } from "../typechain";
 
 async function skipDays(d: number) {
     ethers.provider.send('evm_increaseTime', [d * 86400]);
@@ -107,7 +107,7 @@ describe("Automated strategy execution", function () {
         it("Should add data to strategy handler ", async () => {
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, _assetId);
             const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
 
             await handler.addLiquidityDirection(
@@ -137,7 +137,7 @@ describe("Automated strategy execution", function () {
 
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, _assetId);
             const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
 
             await handler.addLiquidityDirection(
@@ -181,7 +181,7 @@ describe("Automated strategy execution", function () {
         it("Should try exiting before the end of locking period", async () => {
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, _assetId);
             const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
 
             console.log(`ENTRY PARAMS: ${_entryData}\n`);
@@ -271,7 +271,7 @@ describe("Automated strategy execution", function () {
 
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, _assetId);
             const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
             const amount = parseUnits("100", await poolToken.decimals());
             await handler.addLiquidityDirection(
@@ -310,9 +310,11 @@ describe("Automated strategy execution", function () {
         });
         it("Should invest into ETH/frxETH pool twice", async () => {
 
+            const fraxPoolContract = await ethers.getContractAt("contracts/interfaces/IFraxFarmERC20.sol:IFraxFarmERC20", fraxPool) as IFraxFarmERC20;
+
             const _entryData = await strategy.encodeEntryParams(
                 curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, 0);
+            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, _assetId);
             const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
 
             console.log(`ENTRY PARAMS: ${_entryData}\n`);
@@ -348,11 +350,9 @@ describe("Automated strategy execution", function () {
                 '\n**********************************');
             await executor.connect(admin).executeDeposits();
             console.log('\nDeposit 1 executed!\n');
-
-
+            console.log(await fraxPoolContract.lockedStakesOf(strategy.address), '\n');
 
             console.log("Second cycle:");
-
 
             const executorBalanceBefore2 = await poolToken.balanceOf(executor.address);
             const rq4 = await executor.callStatic.encodeLiquidityCommand(_codeName, 10000);
@@ -371,6 +371,7 @@ describe("Automated strategy execution", function () {
             await executor.connect(admin).executeDeposits();
             console.log('\nDeposit 1 executed!\n');
 
+            console.log(await fraxPoolContract.lockedStakesOf(strategy.address));
 
 
         });
@@ -379,4 +380,3 @@ describe("Automated strategy execution", function () {
 
 
 });
-
