@@ -301,8 +301,8 @@ contract CurveFraxConvexStrategyV2 is
 
         // step 2 - unwrap lp tokens
         address stakeToken = IFraxFarmERC20(_fraxPool).stakingToken();
-        uint256 lpAmountToWithdraw = (lockedstakes[0].liquidity *
-            _unwindPercent) / 10000;
+        uint256 lpAmountToWithdraw = (lockedstakes[lockedstakes.length - 1]
+            .liquidity * _unwindPercent) / 10000;
 
         if (lpAmountToWithdraw == 0) return 0;
 
