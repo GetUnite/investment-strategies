@@ -193,6 +193,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
             await skipDays(0.5);
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
@@ -201,8 +202,11 @@ describe("CurveFraxConvex Strategies", function () {
 
             const receiver = signer.address;
             await skipDays(10);
+            console.log('balance of staking token', await stakingToken.balanceOf(strategy.address));
+            console.log(await fraxPoolContract.lockedStakesOfLength(strategy.address));
             await strategy.exitAll(exitData, 10000, poolToken.address, receiver, true, false);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
+            console.log(await fraxPoolContract.lockedStakesOfLength(strategy.address));
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1); // because we locked remaining
 
             const totalInvestAmount = amount.mul(2);
             const expectedBalance = balanceBefore.add(totalInvestAmount);
@@ -608,10 +612,6 @@ describe("CurveFraxConvex Strategies", function () {
                 unsafeAllow: ["delegatecall"]
             }
             ) as CurveFraxConvexStrategyV2
-
-            // const Strategy = await ethers.getContractAt("CurveFraxConvexStrategyV2", "0x4d8dE98F908748b91801d74d3F784389107F51d7")
-            // const newStrategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2")
-            // strategy = await upgrades.upgradeProxy("0x4d8dE98F908748b91801d74d3F784389107F51d7", newStrategy, { unsafeAllow: ["delegatecall"] }) as CurveFraxConvexStrategyV2;
 
             fraxPoolContract = await ethers.getContractAt("contracts/interfaces/IFraxFarmERC20.sol:IFraxFarmERC20", "0xa537d64881b84faffb9Ae43c951EEbF368b71cdA") as IFraxFarmERC20;
             priceFeed = await ethers.getContractAt("contracts/interfaces/IPriceFeedRouterV2.sol:IPriceFeedRouterV2", "0x24733D6EBdF1DA157d2A491149e316830443FC00") as IPriceFeedRouterV2;
