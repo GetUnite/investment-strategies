@@ -259,18 +259,21 @@ describe("CurveFraxConvex Strategies", function () {
             console.log('Length of stakes before exiting, should be one', await fraxPoolContract.lockedStakesOfLength(strategy.address))
             await strategy.exitAll(exitData, 10000, outputCoin, receiver, true, false);
             expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(2);
+            expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.eq(0);
             expect(await wrappedEther.balanceOf(receiver)).to.be.gt(balanceBefore);
 
             console.log('##----------Investing round 3-------------##\n')
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(3);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(3)
+            expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.gt(0);;
             await skipDays(10);
 
             console.log('##----------Investing round 4 (after the end of 3rd, but lock additional)-------------##\n')
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
             expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(3);
+            expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.gt(0);
             await skipDays(10)
 
             console.log('##----------Partial exit and lock remaining-------------##\n')
@@ -278,11 +281,13 @@ describe("CurveFraxConvex Strategies", function () {
             expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(4);
             await skipDays(10)
             const balanceBeforeExit = await wrappedEther.balanceOf(receiver);
+            expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.gt(0);
 
             console.log('##----------Exiting all after round 4-------------##\n')
             await strategy.exitAll(exitData, 10000, outputCoin, receiver, true, false);
             expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(4);
             expect(await wrappedEther.balanceOf(receiver)).to.be.gt(balanceBeforeExit);
+            expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.eq(0);
 
         });
     });
