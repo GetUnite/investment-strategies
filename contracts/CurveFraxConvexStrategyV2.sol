@@ -83,10 +83,10 @@ contract CurveFraxConvexStrategyV2 is
     /// @dev Same logic as the CurveConvexStrategyV2, but with additional support for native ETH
     /// @param data Payload containing necessary information to enter a curve pool and stake into frax.convex
     /// @param amount Amount of poolToken to enter curve with
-    function invest(bytes calldata data, uint256 amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function invest(
+        bytes calldata data,
+        uint256 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         (
             address curvePool,
             address poolToken,
@@ -181,22 +181,25 @@ contract CurveFraxConvexStrategyV2 is
             fraxPool
         ).lockedStakesOf(address(this));
 
-        if (lockedstakes.length == 1) {
-            bytes32 kek_id = lockedstakes[0].kek_id;
+        if (
+            lockedstakes.length == 0 ||
+            lockedstakes[lockedstakes.length - 1].ending_timestamp == 0
+        ) {
+            IFraxFarmERC20(fraxPool).stakeLocked(fraxLpAmount, duration);
+        } else {
+            bytes32 kek_id = lockedstakes[lockedstakes.length - 1].kek_id;
             IFraxFarmERC20(fraxPool).lockAdditional(kek_id, fraxLpAmount);
             IFraxFarmERC20(fraxPool).lockLonger(
                 kek_id,
                 block.timestamp + duration
             ); // lock_time_min = 594000 in frax pool
-        } else if (lockedstakes.length == 0) {
-            IFraxFarmERC20(fraxPool).stakeLocked(fraxLpAmount, duration);
         }
     }
 
-    function investLonger(address _fraxpool, uint256 newEndingTs)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function investLonger(
+        address _fraxpool,
+        uint256 newEndingTs
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         IFraxFarmERC20.LockedStake[] memory lockedstakes = IFraxFarmERC20(
             _fraxpool
         ).lockedStakesOf(address(this));
@@ -205,7 +208,7 @@ contract CurveFraxConvexStrategyV2 is
             lockedstakes.length != 0,
             "CurveFraxConvexStrategyV2: !invested"
         );
-        bytes32 kek_id = lockedstakes[0].kek_id;
+        bytes32 kek_id = lockedstakes[lockedstakes.length - 1].kek_id;
         IFraxFarmERC20(_fraxpool).lockLonger(kek_id, newEndingTs);
     }
 
@@ -292,7 +295,7 @@ contract CurveFraxConvexStrategyV2 is
 
         // step 1 - unlock wrapped lp tokens
         IFraxFarmERC20(_fraxPool).withdrawLocked(
-            lockedstakes[0].kek_id,
+            lockedstakes[lockedstakes.length - 1].kek_id,
             address(this)
         );
 
@@ -311,7 +314,6 @@ contract CurveFraxConvexStrategyV2 is
                 address(this)
             );
             if (lpAmountToLock != 0) {
-                // console.log(lpAmountToLock);
                 _lockInFraxPool(_fraxPool, lpAmountToLock, _nextDuration);
             }
         }
@@ -325,7 +327,6 @@ contract CurveFraxConvexStrategyV2 is
     ) internal {
         address stakeToken = IFraxFarmERC20(_fraxPool).stakingToken();
         IERC20(stakeToken).safeIncreaseAllowance(_fraxPool, _amount);
-
         IFraxFarmERC20(_fraxPool).stakeLocked(_amount, _duration);
     }
 
@@ -345,11 +346,9 @@ contract CurveFraxConvexStrategyV2 is
     /// @dev Called by the Vote Executor, this is used in the process of calculating the current position in Convex for Alluo staking reward calculations
     /// @param data Contains Convex pool data as well as the asset the function should return the value in.
     /// @return uint256 amount of the position valued in assetId price.
-    function getDeployedAmountAndRewards(bytes calldata data)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        returns (uint256)
-    {
+    function getDeployedAmountAndRewards(
+        bytes calldata data
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256) {
         (
             address lpToken,
             address fraxPool,
@@ -379,10 +378,9 @@ contract CurveFraxConvexStrategyV2 is
     /// @notice Swaps rewards to "token" and sends it to the Vote Executor
     /// @dev Swaps existing rewards already claimed to the token. This does not claim from convex.
     /// @param _token The token we expect to receive rewards in
-    function withdrawRewards(address _token)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function withdrawRewards(
+        address _token
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _manageRewardsAndWithdraw(true, IERC20(_token), msg.sender);
     }
 
@@ -421,10 +419,10 @@ contract CurveFraxConvexStrategyV2 is
     /// @dev Important when claiming/ swapping all rewards to output coin
     /// @param _newToken token address to add/remove
     /// @param _status whether to add or remove
-    function changeAdditionalRewardTokenStatus(address _newToken, bool _status)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function changeAdditionalRewardTokenStatus(
+        address _newToken,
+        bool _status
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_status) {
             additionalRewards.add(_newToken);
         } else {
@@ -436,11 +434,9 @@ contract CurveFraxConvexStrategyV2 is
     /// @dev Used as a view function to track positions
     /// @param data contains information of the convex pool and the assetId to return the value of the position.
     /// @return value of the current position described by data
-    function getDeployedAmount(bytes calldata data)
-        external
-        view
-        returns (uint256)
-    {
+    function getDeployedAmount(
+        bytes calldata data
+    ) external view returns (uint256) {
         (
             address lpToken, // can be acceesed as IConvexStaking(IFraxFarmERC20(frax).stakingToken()).curvetoken()
             address fraxPool,
@@ -575,18 +571,9 @@ contract CurveFraxConvexStrategyV2 is
             );
     }
 
-    function decodeEntryParams(bytes calldata data)
-        public
-        pure
-        returns (
-            address,
-            address,
-            uint8,
-            uint8,
-            address,
-            uint256
-        )
-    {
+    function decodeEntryParams(
+        bytes calldata data
+    ) public pure returns (address, address, uint8, uint8, address, uint256) {
         require(data.length == 32 * 6, "FraxConvexStrategyV2: length en");
         return
             abi.decode(
@@ -595,18 +582,9 @@ contract CurveFraxConvexStrategyV2 is
             );
     }
 
-    function decodeExitParams(bytes calldata data)
-        public
-        pure
-        returns (
-            address,
-            address,
-            uint8,
-            address,
-            bool,
-            uint256
-        )
-    {
+    function decodeExitParams(
+        bytes calldata data
+    ) public pure returns (address, address, uint8, address, bool, uint256) {
         require(data.length == 32 * 6, "FraxConvexStrategyV2: length ex");
         return
             abi.decode(data, (address, address, uint8, address, bool, uint256));
@@ -620,39 +598,29 @@ contract CurveFraxConvexStrategyV2 is
         return abi.encode(lpToken, fraxPool, assetId);
     }
 
-    function decodeRewardsParams(bytes calldata data)
-        public
-        pure
-        returns (
-            address,
-            address,
-            uint256
-        )
-    {
+    function decodeRewardsParams(
+        bytes calldata data
+    ) public pure returns (address, address, uint256) {
         require(data.length == 32 * 3, "FraxConvexStrategyV2: length ex");
         return abi.decode(data, (address, address, uint256));
     }
 
-    function grantRole(bytes32 role, address account)
-        public
-        override
-        onlyRole(getRoleAdmin(role))
-    {
+    function grantRole(
+        bytes32 role,
+        address account
+    ) public override onlyRole(getRoleAdmin(role)) {
         _grantRole(role, account);
     }
 
-    function changeUpgradeStatus(bool _status)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function changeUpgradeStatus(
+        bool _status
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         upgradeStatus = _status;
     }
 
-    function _authorizeUpgrade(address)
-        internal
-        override
-        onlyRole(UPGRADER_ROLE)
-    {
+    function _authorizeUpgrade(
+        address
+    ) internal override onlyRole(UPGRADER_ROLE) {
         require(upgradeStatus, "Executor: Upgrade not allowed");
         upgradeStatus = false;
     }

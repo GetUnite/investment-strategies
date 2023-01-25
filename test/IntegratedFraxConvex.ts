@@ -224,10 +224,10 @@ describe("Automated strategy execution", function () {
             // try to exit before 7 days end
             await executor.submitData(inputData);
             const tx = executor.executeSpecificData(4);
-            expect(tx).to.be.reverted;
+            await expect(tx).to.be.reverted;
 
             const txExit = strategy.exitAll(_exitData, 10000, poolToken.address, signer.address, true, true);
-            expect(txExit).to.be.revertedWith("Stake is still locked!");
+            await expect(txExit).to.be.revertedWith("Stake is still locked!");
 
         });
 

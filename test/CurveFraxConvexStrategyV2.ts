@@ -241,7 +241,7 @@ describe("CurveFraxConvex Strategies", function () {
             const blockInfo = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
             const newEndingTs = blockInfo.timestamp + (60 * 60 * 24 * 8);
             const tx = strategy.investLonger(fraxPool, newEndingTs);
-            expect(tx).to.be.revertedWith("CurveFraxConvexStrategyV2: !invested");
+            await expect(tx).to.be.revertedWith("CurveFraxConvexStrategyV2: !invested");
         });
 
         it("Should try to exit before the end of locking period", async () => {
@@ -256,7 +256,7 @@ describe("CurveFraxConvex Strategies", function () {
             await strategy.invest(entryData, amount);
             const tx = strategy.exitAll(exitData, 10000, poolToken.address, strategy.address, true, false);
 
-            expect(tx).to.be.revertedWith("Stake is still locked!");
+            await expect(tx).to.be.revertedWith("Stake is still locked!");
 
         });
 
