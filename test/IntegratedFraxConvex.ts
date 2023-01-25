@@ -32,6 +32,7 @@ describe("Automated strategy execution", function () {
     let handler: IStrategyHandler;
     let executor: IVoteExecutorMaster;
     let poolToken: IERC20Metadata;
+    let fraxPoolContract: IFraxFarmERC20;
 
     const duration = 60 * 60 * 24 * 8;  //EIGHT_DAYS_IN_SECONDS;
     const ZERO_ADDR = ethers.constants.AddressZero;
@@ -54,6 +55,8 @@ describe("Automated strategy execution", function () {
         signer = signers[0]
         exchange = await ethers.getContractAt("contracts/interfaces/IExchange.sol:IExchange", "0x29c66CF57a03d41Cfe6d9ecB6883aa0E2AbA21Ec") as IExchange
         const value = parseEther("200.0");
+        fraxPoolContract = await ethers.getContractAt("contracts/interfaces/IFraxFarmERC20.sol:IFraxFarmERC20", "0x963f487796d54d2f27bA6F3Fbe91154cA103b199") as IFraxFarmERC20;
+
 
         await exchange.exchange(
             ZERO_ADDR, "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", value, 0, { value: value }
@@ -228,6 +231,67 @@ describe("Automated strategy execution", function () {
 
             const txExit = strategy.exitAll(_exitData, 10000, poolToken.address, signer.address, true, true);
             await expect(txExit).to.be.revertedWith("Stake is still locked!");
+
+        });
+
+        it("Should invest twice and exit", async () => {
+            const _entryData = await strategy.encodeEntryParams(
+                curvePool, _entryToken, poolSize, tokenIndexInCurve, fraxPool, duration);
+            const _rewardsData = await strategy.encodeRewardsParams(lpToken, fraxPool, _assetId);
+            const _exitData = await strategy.encodeExitParams(curvePool, _entryToken, tokenIndexInCurve, fraxPool, true, duration);
+
+            console.log(`ENTRY PARAMS: ${_entryData}\n`);
+            console.log(`EXIT PARAMS: ${_exitData}\n`);
+            console.log(`REWARDS PARAMS: ${_rewardsData}\n`);
+
+            await handler.addLiquidityDirection(
+                _codeName,
+                strategy.address,
+                _entryToken,
+                _assetId,
+                _chainId,
+                _entryData,
+                _exitData,
+                _rewardsData
+            );
+
+
+            const executorBalanceBefore = await poolToken.balanceOf(executor.address);
+            const request1 = await executor.callStatic.encodeLiquidityCommand(_codeName, 6000);
+            const request2 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex Mim+3CRV", 4000);
+            const request5 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex Frax+USDC", 0);
+            const idx = request1[0];
+            const messages = request1[1];
+
+            const request3 = await executor.callStatic.encodeAllMessages([idx, request2[0], request5[0]], [messages, request2[1], request5[1]]);
+            const inputData = request3[2];
+            await executor.submitData(inputData);
+
+            const admin = await getImpersonatedSigner('0x1F020A4943EB57cd3b2213A66b355CB662Ea43C3');
+            await executor.connect(admin).setMinSigns(0);
+
+            await executor.executeSpecificData(3);
+            const executorBalanceAter = await poolToken.balanceOf(executor.address);
+            console.log('Balance of executor before investing', ethers.utils.formatUnits(executorBalanceBefore, 6), "balance after withdrawal: ", ethers.utils.formatUnits(executorBalanceAter, 6), '\n**********************************');
+
+            await executor.connect(admin).executeDeposits();
+            console.log('\nDeposit executed!\n')
+            await skipDays(9)
+
+            const request6 = await executor.callStatic.encodeLiquidityCommand(_codeName, 5000);
+            const request7 = await executor.callStatic.encodeLiquidityCommand("Curve/Convex Mim+3CRV", 5000);
+            const request8 = await executor.callStatic.encodeAllMessages([request6[0], request7[0]], [request6[1], request7[1]]);
+            const inputData1 = request8[2];
+            await executor.submitData(inputData1);
+            await executor.executeSpecificData(4);
+            await executor.connect(admin).executeDeposits();
+            console.log(await fraxPoolContract.lockedStakesOf(strategy.address))
+            await skipDays(9)
+
+            const txExit = strategy.exitAll(_exitData, 10000, poolToken.address, signer.address, true, true);
+            expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.eq(0)
+            console.log('\n----------STAKE BALANCE AFTER EXIT--------------\n')
+            console.log(await fraxPoolContract.lockedStakesOf(strategy.address))
 
         });
 
