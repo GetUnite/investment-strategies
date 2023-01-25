@@ -288,7 +288,7 @@ describe("Automated strategy execution", function () {
             console.log(await fraxPoolContract.lockedStakesOf(strategy.address))
             await skipDays(9)
 
-            const txExit = strategy.exitAll(_exitData, 10000, poolToken.address, signer.address, true, true);
+            await strategy.exitAll(_exitData, 10000, poolToken.address, signer.address, true, true);
             expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.eq(0)
             console.log('\n----------STAKE BALANCE AFTER EXIT--------------\n')
             console.log(await fraxPoolContract.lockedStakesOf(strategy.address))
@@ -372,7 +372,8 @@ describe("Automated strategy execution", function () {
             await executor.connect(admin).executeDeposits();
             console.log('\nDeposit executed!\n');
         });
-        it("Should invest into ETH/frxETH pool twice", async () => {
+
+        it("Should invest into ETH/frxETH pool twice and exit", async () => {
 
             const fraxPoolContract = await ethers.getContractAt("contracts/interfaces/IFraxFarmERC20.sol:IFraxFarmERC20", fraxPool) as IFraxFarmERC20;
 
@@ -434,7 +435,12 @@ describe("Automated strategy execution", function () {
                 '\n**********************************');
             await executor.connect(admin).executeDeposits();
             console.log('\nDeposit 1 executed!\n');
+            console.log(await fraxPoolContract.lockedStakesOf(strategy.address));
+            await skipDays(9)
 
+            await strategy.exitAll(_exitData, 10000, poolToken.address, signer.address, true, true);
+            expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.eq(0)
+            console.log('\n----------STAKE BALANCE AFTER EXIT--------------\n')
             console.log(await fraxPoolContract.lockedStakesOf(strategy.address));
 
 
