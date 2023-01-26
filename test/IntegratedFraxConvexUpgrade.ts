@@ -55,8 +55,7 @@ describe("Automated strategy execution for Upgraded Strategy", function () {
         signer = signers[0]
         exchange = await ethers.getContractAt("contracts/interfaces/IExchange.sol:IExchange", "0x29c66CF57a03d41Cfe6d9ecB6883aa0E2AbA21Ec") as IExchange
         const value = parseEther("200.0");
-        fraxPoolContract = await ethers.getContractAt("contracts/interfaces/IFraxFarmERC20.sol:IFraxFarmERC20", "0x963f487796d54d2f27bA6F3Fbe91154cA103b199") as IFraxFarmERC20;
-
+        fraxPoolContract = await ethers.getContractAt("contracts/interfaces/IFraxFarmERC20.sol:IFraxFarmERC20", "0x963f487796d54d2f27bA6F3Fbe91154cA103b199") as IFraxFarmERC20
 
         await exchange.exchange(
             ZERO_ADDR, "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", value, 0, { value: value }
@@ -99,8 +98,8 @@ describe("Automated strategy execution for Upgraded Strategy", function () {
             await oldStrategy.connect(admin).changeUpgradeStatus(true);
 
             const newStrategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2")
-            const oldStrateImp = await ethers.getContractFactory("CurveFraxConvexStrategyV1")
-            const deployment = await upgrades.forceImport('0x4d8dE98F908748b91801d74d3F784389107F51d7', oldStrateImp);
+            const oldStrategyImp = await ethers.getContractFactory("CurveFraxConvexStrategyV1")
+            const deployment = await upgrades.forceImport('0x4d8dE98F908748b91801d74d3F784389107F51d7', oldStrategyImp);
             strategy = await upgrades.upgradeProxy("0x4d8dE98F908748b91801d74d3F784389107F51d7", newStrategy, { unsafeAllow: ["delegatecall"] }) as CurveFraxConvexStrategyV2;
             await strategy.deployed()
 
@@ -168,13 +167,15 @@ describe("Automated strategy execution for Upgraded Strategy", function () {
 
             await executor.executeSpecificData(6);
             const executorBalanceAter = await poolToken.balanceOf(executor.address);
+            await executor.connect(admin).executeDeposits();
+            console.log('\nDeposit 1 executed!\n');
 
             console.log('\n**********************************', '\nBalance of executor before investing\n',
                 ethers.utils.formatEther(executorBalanceBefore), "\nbalance after withdrawal: ",
                 ethers.utils.formatEther(executorBalanceAter),
                 '\n**********************************');
-            await executor.connect(admin).executeDeposits();
-            console.log('\nDeposit 1 executed!\n');
+
+            expect(executorBalanceBefore).to.be.lt(executorBalanceAter)
             expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.gt(0);
             expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(2)
             const lockedLiq1 = await fraxPoolContract.lockedLiquidityOf(strategy.address);
@@ -192,25 +193,29 @@ describe("Automated strategy execution for Upgraded Strategy", function () {
 
             await executor.executeSpecificData(7);
             const executorBalanceAter2 = await poolToken.balanceOf(executor.address);
-
+            await executor.connect(admin).executeDeposits();
+            console.log('\nDeposit 2 executed!\n');
             console.log('\n**********************************', '\nBalance of executor before investing\n',
                 ethers.utils.formatEther(executorBalanceBefore2), "\nbalance after withdrawal: ",
                 ethers.utils.formatEther(executorBalanceAter2),
                 '\n**********************************');
-            await executor.connect(admin).executeDeposits();
-            console.log('\nDeposit 2 executed!\n');
+
+            expect(executorBalanceBefore2).to.be.lt(executorBalanceAter2)
+
             expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.gt(0);
             expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(3)
             const lockedLiq2 = await fraxPoolContract.lockedLiquidityOf(strategy.address);
-            console.log('Locked liquidity 2', lockedLiq2, 'should be less than first locked', lockedLiq1, '\n');
             expect(lockedLiq2).to.be.lt(lockedLiq1);
+            console.log('Checked: locked liquidity 2', lockedLiq2, 'is less than first locked', lockedLiq1, '\n');
             await skipDays(9)
+            const signerBalanceBefore = await poolToken.balanceOf(signer.address);
 
             await strategy.exitAll(_exitData, 10000, poolToken.address, signer.address, true, true);
             expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.eq(0)
             console.log('\n----------STAKE BALANCE AFTER EXIT--------------\n')
             console.log(await fraxPoolContract.lockedStakesOf(strategy.address));
-
+            expect(await poolToken.balanceOf(signer.address)).to.be.gt(signerBalanceBefore)
+            console.log('Signer new baalnce', await poolToken.balanceOf(signer.address))
 
         });
 
