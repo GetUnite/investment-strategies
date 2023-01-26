@@ -118,7 +118,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const newStrategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2")
             const oldStrateImp = await ethers.getContractFactory("CurveFraxConvexStrategyV1")
-            const deployment = await upgrades.forceImport('0x723f499e8749ADD6dCdf02385Ad35B5B2FB9df98', oldStrateImp);
+            // const deployment = await upgrades.forceImport('0x723f499e8749ADD6dCdf02385Ad35B5B2FB9df98', oldStrateImp);
             strategy = await upgrades.upgradeProxy("0x723f499e8749ADD6dCdf02385Ad35B5B2FB9df98", newStrategy, { unsafeAllow: ["delegatecall"] }) as CurveFraxConvexStrategyV2;
             await strategy.deployed()
 
@@ -214,7 +214,6 @@ describe("CurveFraxConvex Strategies", function () {
 
             const newStrategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2")
             const oldStrateImp = await ethers.getContractFactory("CurveFraxConvexStrategyV1")
-            const deployment = await upgrades.forceImport('0x4d8dE98F908748b91801d74d3F784389107F51d7', oldStrateImp);
             strategy = await upgrades.upgradeProxy("0x4d8dE98F908748b91801d74d3F784389107F51d7", newStrategy, { unsafeAllow: ["delegatecall"] }) as CurveFraxConvexStrategyV2;
             await strategy.deployed()
 
@@ -288,9 +287,10 @@ describe("CurveFraxConvex Strategies", function () {
             expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(4);
             expect(await wrappedEther.balanceOf(receiver)).to.be.gt(balanceBeforeExit);
             expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.eq(0);
+            console.log(await fraxPoolContract.lockedStakesOf(strategy.address))
 
         });
-    });
 
+    });
 });
 
