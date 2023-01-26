@@ -18,9 +18,6 @@ import {IWrappedEther} from "./interfaces/IWrappedEther.sol";
 import {IFraxFarmERC20} from "./interfaces/IFraxFarmERC20.sol";
 import {ICurvePool} from "./interfaces/ICurvePool.sol";
 import {IConvexWrapper} from "./interfaces/IConvexWrapper.sol";
-import "hardhat/console.sol";
-
-// import "hardhat/console.sol";
 
 contract CurveFraxConvexStrategyV2 is
     IAlluoStrategyV2,

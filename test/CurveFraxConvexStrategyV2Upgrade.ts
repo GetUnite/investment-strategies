@@ -94,103 +94,6 @@ describe("CurveFraxConvex Strategies", function () {
 
     });
 
-    describe("CurveFraxConvex Strategy V2", function () {
-        let strategy: CurveFraxConvexStrategyV2;
-        let stakingToken: IConvexStaking;
-        let poolToken: IERC20Metadata;
-
-        const curvePool = "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2";
-        const fraxPool = "0x963f487796d54d2f27bA6F3Fbe91154cA103b199";
-        const poolSize = 2;
-        const poolTokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-        const lpToken = '0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC';
-        const tokenIndexInCurve = 1;
-
-        beforeEach(async () => {
-
-            await resetNetwork();
-
-            const admin = await getImpersonatedSigner('0x1F020A4943EB57cd3b2213A66b355CB662Ea43C3')
-            const oldStrategy = await ethers.getContractAt("CurveFraxConvexStrategyV2", "0x4d8dE98F908748b91801d74d3F784389107F51d7")
-            await oldStrategy.connect(admin).grantRole(await oldStrategy.DEFAULT_ADMIN_ROLE(), signers[0].address)
-            await oldStrategy.connect(admin).grantRole(await oldStrategy.UPGRADER_ROLE(), signers[0].address)
-            await oldStrategy.connect(admin).changeUpgradeStatus(true);
-
-            const newStrategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2")
-            const deployment = await upgrades.forceImport('0x4d8dE98F908748b91801d74d3F784389107F51d7', newStrategy);
-            strategy = await upgrades.upgradeProxy("0x4d8dE98F908748b91801d74d3F784389107F51d7", newStrategy, { unsafeAllow: ["delegatecall"] }) as CurveFraxConvexStrategyV2;
-            await strategy.deployed()
-            console.log(await oldStrategy.upgradeStatus());
-            console.log('new strategy address', strategy.address, '\nold strategy address', oldStrategy.address)
-
-            priceFeed = await ethers.getContractAt("contracts/interfaces/IPriceFeedRouterV2.sol:IPriceFeedRouterV2", "0x24733D6EBdF1DA157d2A491149e316830443FC00") as IPriceFeedRouterV2;
-            poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress); // usdc
-            curvePoolContract = await ethers.getContractAt("ICurvePool", curvePool) as ICurvePool;
-            crvPoolToken = await ethers.getContractAt("IERC20Metadata", await curvePoolContract.lp_token());
-            stakingToken = await ethers.getContractAt("IConvexStaking", "0x8a53ee42FB458D4897e15cc7dEa3F75D0F1c3475");
-            fraxPoolContract = await ethers.getContractAt("contracts/interfaces/IFraxFarmERC20.sol:IFraxFarmERC20", "0x963f487796d54d2f27bA6F3Fbe91154cA103b199") as IFraxFarmERC20;
-
-        });
-
-        it("Should loop investments 5 times", async () => {
-            const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
-            const amount = parseUnits("1000", await poolToken.decimals());
-
-            const entryData = await strategy.encodeEntryParams(
-                curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(2);
-            console.log('Length of stakes before any investment, should be one', await fraxPoolContract.lockedStakesOfLength(strategy.address))
-
-            console.log('##----------Investing round 1-------------##\n')
-            await poolToken.connect(signer).transfer(strategy.address, amount);
-            await strategy.invest(entryData, amount);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
-            await skipDays(0.5);
-
-            console.log('##----------Investing round 2 (before the end of 1st)-------------##\n')
-            await poolToken.connect(signer).transfer(strategy.address, amount);
-            await strategy.invest(entryData, amount);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
-            const balanceBefore = await poolToken.balanceOf(signer.address);
-            const receiver = signer.address;
-            await skipDays(10);
-            expect(await stakingToken.balanceOf(strategy.address)).to.be.eq(0);
-
-            console.log('##----------Exiting all after round 2-------------##\n')
-            console.log('Length of stakes before exiting, should be one', await fraxPoolContract.lockedStakesOfLength(strategy.address))
-            await strategy.exitAll(exitData, 10000, poolToken.address, receiver, false, false);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
-            expect(await stakingToken.balanceOf(receiver)).to.be.gt(balanceBefore);
-
-            console.log('##----------Investing round 3-------------##\n')
-            await poolToken.connect(signer).transfer(strategy.address, amount);
-            await strategy.invest(entryData, amount);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(2);
-
-            await skipDays(10);
-            console.log('##----------Investing round 4 (after the end of 3rd, but lock additional)-------------##\n')
-            await poolToken.connect(signer).transfer(strategy.address, amount);
-            await strategy.invest(entryData, amount);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(2);
-            await skipDays(10)
-
-            console.log('##----------Partial exit and lock remaining-------------##\n')
-            await strategy.exitAll(exitData, 6000, poolToken.address, receiver, true, false);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(3);
-            await skipDays(10)
-            const balanceBeforeExit = await poolToken.balanceOf(signer.address);
-
-            console.log('##----------Exiting all after round 4-------------##\n')
-            await strategy.exitAll(exitData, 10000, poolToken.address, receiver, true, false);
-            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(3);
-            expect(await stakingToken.balanceOf(receiver)).to.be.gt(balanceBeforeExit);
-
-        });
-
-    });
-
-
     describe("CurveFraxConvex Strategy Native ETH V2", function () {
         let stakingToken: IConvexStaking;
         const curvePool = "0xa1f8a6807c402e4a15ef4eba36528a3fed24e577";
@@ -214,7 +117,6 @@ describe("CurveFraxConvex Strategies", function () {
 
             const newStrategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2")
             const oldStrateImp = await ethers.getContractFactory("CurveFraxConvexStrategyV1")
-            const deployment = await upgrades.forceImport('0x4d8dE98F908748b91801d74d3F784389107F51d7', oldStrateImp);
             strategy = await upgrades.upgradeProxy("0x4d8dE98F908748b91801d74d3F784389107F51d7", newStrategy, { unsafeAllow: ["delegatecall"] }) as CurveFraxConvexStrategyV2;
             await strategy.deployed()
 
@@ -224,7 +126,7 @@ describe("CurveFraxConvex Strategies", function () {
 
         });
 
-        it.only("Should loop investments 5 times", async () => {
+        it("Should loop investments 5 times", async () => {
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
@@ -288,6 +190,7 @@ describe("CurveFraxConvex Strategies", function () {
             expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(4);
             expect(await wrappedEther.balanceOf(receiver)).to.be.gt(balanceBeforeExit);
             expect(await fraxPoolContract.lockedLiquidityOf(strategy.address)).to.be.eq(0);
+            console.log(await fraxPoolContract.lockedStakesOf(strategy.address))
 
         });
     });
