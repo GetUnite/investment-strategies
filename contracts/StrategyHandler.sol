@@ -166,14 +166,20 @@ contract StrategyHandler is
                         primaryDecimals,
                         18
                     );
-                    info.amountDeployed = newAmountDeployed + rewardsLeft;
+                    info.amountDeployed =
+                        newAmountDeployed +
+                        rewardsLeft +
+                        IERC20Upgradeable(primaryToken).balanceOf(executor);
                     console.log(
                         "surplus sent to booster, all rewards that left sent to executor:",
                         rewardsLeft
                     );
                     console.log("new total amount:", info.amountDeployed);
                 } else {
-                    info.amountDeployed = actualAmount - totalRewards;
+                    info.amountDeployed =
+                        actualAmount -
+                        totalRewards +
+                        IERC20Upgradeable(primaryToken).balanceOf(executor);
                     IERC20Upgradeable(primaryToken).transfer(
                         booster,
                         totalRewardsBalance
@@ -192,7 +198,9 @@ contract StrategyHandler is
                     executor,
                     totalRewardsBalance
                 );
-                info.amountDeployed = actualAmount;
+                info.amountDeployed =
+                    actualAmount +
+                    IERC20Upgradeable(primaryToken).balanceOf(executor);
 
                 console.log("new total amount:", info.amountDeployed);
                 console.log("all rewards to executor");
@@ -510,8 +518,8 @@ contract StrategyHandler is
         assetIdToAssetInfo[_assetId].ibAlluo = _ibAlluo;
         for (uint256 i; i < _chainIds.length; i++) {
             assetIdToAssetInfo[_assetId].chainIdToPrimaryToken[
-                _chainIds[i]
-            ] = _chainIdToPrimaryToken[i];
+                    _chainIds[i]
+                ] = _chainIdToPrimaryToken[i];
         }
     }
 
