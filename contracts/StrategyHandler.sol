@@ -131,9 +131,8 @@ contract StrategyHandler is
                 18
             );
 
-            uint256 interest = IIbAlluo(info.ibAlluo).annualInterest();
             uint256 expectedAddition = (info.amountDeployed *
-                interest *
+                IIbAlluo(info.ibAlluo).annualInterest() *
                 timePass) /
                 31536000 /
                 10000;
@@ -156,6 +155,15 @@ contract StrategyHandler is
 
                     uint256 rewardsLeft = IERC20Upgradeable(primaryToken)
                         .balanceOf(address(this));
+
+                    uint256 executorBalanceBefore18 = IERC20Upgradeable(
+                        primaryToken
+                    ).balanceOf(executor) *
+                        10 **
+                            (18 -
+                                IERC20MetadataUpgradeable(primaryToken)
+                                    .decimals());
+
                     IERC20Upgradeable(primaryToken).transfer(
                         executor,
                         rewardsLeft
@@ -166,10 +174,11 @@ contract StrategyHandler is
                         primaryDecimals,
                         18
                     );
+
                     info.amountDeployed =
                         newAmountDeployed +
                         rewardsLeft +
-                        IERC20Upgradeable(primaryToken).balanceOf(executor);
+                        executorBalanceBefore18;
                     console.log(
                         "surplus sent to booster, all rewards that left sent to executor:",
                         rewardsLeft
@@ -179,7 +188,9 @@ contract StrategyHandler is
                     info.amountDeployed =
                         actualAmount -
                         totalRewards +
-                        IERC20Upgradeable(primaryToken).balanceOf(executor);
+                        IERC20Upgradeable(primaryToken).balanceOf(executor) *
+                        (10 ** 18 -
+                            IERC20MetadataUpgradeable(primaryToken).decimals());
                     IERC20Upgradeable(primaryToken).transfer(
                         booster,
                         totalRewardsBalance
@@ -194,13 +205,18 @@ contract StrategyHandler is
                     "expectedFullAmount - actualAmount:",
                     (expectedFullAmount - actualAmount)
                 );
+
+                uint256 executorBalanceBefore18 = IERC20Upgradeable(
+                    primaryToken
+                ).balanceOf(executor) *
+                    (10 ** 18 -
+                        IERC20MetadataUpgradeable(primaryToken).decimals());
+
                 IERC20Upgradeable(primaryToken).transfer(
                     executor,
                     totalRewardsBalance
                 );
-                info.amountDeployed =
-                    actualAmount +
-                    IERC20Upgradeable(primaryToken).balanceOf(executor);
+                info.amountDeployed = actualAmount + executorBalanceBefore18;
 
                 console.log("new total amount:", info.amountDeployed);
                 console.log("all rewards to executor");
