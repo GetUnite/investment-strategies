@@ -67,8 +67,6 @@ describe("Test L1 Contract", function () {
             await strategyHandler.connect(gnosis).upgradeTo(newStrategyHandler.address)
 
             // Transfer funds 
-            // await wethContract.connect(gnosis).deposit({ value: ethers.utils.parseEther("3.1") })
-            // await wethContract.connect(gnosis).transfer(voteExecutorMaster.address, ethers.utils.parseEther("3.1"))
             console.log("BEFORE!")
             console.log(await weth.balanceOf(voteExecutorMaster.address))
             console.log(await usdc.balanceOf(voteExecutorMaster.address))
