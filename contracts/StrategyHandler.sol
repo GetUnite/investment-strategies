@@ -189,8 +189,10 @@ contract StrategyHandler is
                         actualAmount -
                         totalRewards +
                         IERC20Upgradeable(primaryToken).balanceOf(executor) *
-                        (10 ** 18 -
-                            IERC20MetadataUpgradeable(primaryToken).decimals());
+                        10 **
+                            (18 -
+                                IERC20MetadataUpgradeable(primaryToken)
+                                    .decimals());
                     IERC20Upgradeable(primaryToken).transfer(
                         booster,
                         totalRewardsBalance
@@ -209,8 +211,9 @@ contract StrategyHandler is
                 uint256 executorBalanceBefore18 = IERC20Upgradeable(
                     primaryToken
                 ).balanceOf(executor) *
-                    (10 ** 18 -
-                        IERC20MetadataUpgradeable(primaryToken).decimals());
+                    10 **
+                        (18 -
+                            IERC20MetadataUpgradeable(primaryToken).decimals());
 
                 IERC20Upgradeable(primaryToken).transfer(
                     executor,
@@ -534,8 +537,8 @@ contract StrategyHandler is
         assetIdToAssetInfo[_assetId].ibAlluo = _ibAlluo;
         for (uint256 i; i < _chainIds.length; i++) {
             assetIdToAssetInfo[_assetId].chainIdToPrimaryToken[
-                _chainIds[i]
-            ] = _chainIdToPrimaryToken[i];
+                    _chainIds[i]
+                ] = _chainIdToPrimaryToken[i];
         }
     }
 
