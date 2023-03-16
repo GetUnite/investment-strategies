@@ -118,7 +118,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             const newStrategy = await ethers.getContractFactory("CurveFraxConvexStrategyV2")
             const oldStrateImp = await ethers.getContractFactory("CurveFraxConvexStrategyV1")
-            // const deployment = await upgrades.forceImport('0x723f499e8749ADD6dCdf02385Ad35B5B2FB9df98', oldStrateImp);
+            const deployment = await upgrades.forceImport('0x723f499e8749ADD6dCdf02385Ad35B5B2FB9df98', oldStrateImp);
             strategy = await upgrades.upgradeProxy("0x723f499e8749ADD6dCdf02385Ad35B5B2FB9df98", newStrategy, { unsafeAllow: ["delegatecall"] }) as CurveFraxConvexStrategyV2;
             await strategy.deployed()
 
