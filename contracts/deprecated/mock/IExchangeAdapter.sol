@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.14;
+pragma solidity ^0.8.14;
 
 interface IExchangeAdapter {
     // 0x6012856e  =>  executeSwap(address,address,address,uint256)
