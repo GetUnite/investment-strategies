@@ -63,6 +63,13 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
     },
+    optimism: {
+      url: process.env.OPTIMISM_URL,
+      gasPrice: "auto",
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
     mumbai: {
       url: process.env.MUMBAI_URL,
       gasPrice: "auto",
@@ -82,7 +89,8 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY != undefined ? process.env.ETHERSCAN_API_KEY : "",
-      polygon: process.env.POLYGONSCAN_API_KEY != undefined ? process.env.POLYGONSCAN_API_KEY : ""
+      polygon: process.env.POLYGONSCAN_API_KEY != undefined ? process.env.POLYGONSCAN_API_KEY : "",
+      optimism: process.env.OPTIMISM_API_KEY != undefined ? process.env.OPTIMISM_API_KEY : ""
     }
   },
 
