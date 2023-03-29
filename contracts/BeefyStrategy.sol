@@ -65,6 +65,17 @@ contract BeefyStrategy is
         return expectedRewards.values();
     }
 
+    function changeExpectedRewardStatus(
+        address token,
+        bool status
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (status) {
+            expectedRewards.add(token);
+        } else {
+            expectedRewards.remove(token);
+        }
+    }
+
     /// @notice Invest tokens transferred to this contract.
     /// @dev Amount of tokens specified in `amount` is guranteed to be
     /// transferred to strategy by vote executor.
@@ -74,6 +85,8 @@ contract BeefyStrategy is
         bytes calldata data,
         uint256 amount
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (amount == 0) return;
+
         (address beefyVaultAddress, address beefyBoostAddress, ) = decodeData(
             data
         );
@@ -191,6 +204,11 @@ contract BeefyStrategy is
                 address(this)
             );
         }
+
+        if (lpAmount == 0) {
+            return 0;
+        }
+
         lpAmount =
             (lpAmount *
                 IBeefyVaultV6(beefyVaultAddress).getPricePerFullShare()) /
@@ -255,6 +273,11 @@ contract BeefyStrategy is
                 address(this)
             );
         }
+
+        if (lpAmount == 0) {
+            return 0;
+        }
+
         lpAmount =
             (lpAmount *
                 IBeefyVaultV6(beefyVaultAddress).getPricePerFullShare()) /
