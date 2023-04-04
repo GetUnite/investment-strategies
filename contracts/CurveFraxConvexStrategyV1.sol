@@ -18,8 +18,11 @@ import {IWrappedEther} from "./interfaces/IWrappedEther.sol";
 import {IFraxFarmERC20} from "./interfaces/IFraxFarmERC20.sol";
 import {ICurvePool} from "./interfaces/ICurvePool.sol";
 import {IConvexWrapper} from "./interfaces/IConvexWrapper.sol";
+import "hardhat/console.sol";
 
-contract CurveFraxConvexStrategyV2 is
+// import "hardhat/console.sol";
+
+contract CurveFraxConvexStrategyV1 is
     IAlluoStrategyV2,
     Initializable,
     AccessControlUpgradeable,
@@ -178,18 +181,15 @@ contract CurveFraxConvexStrategyV2 is
             fraxPool
         ).lockedStakesOf(address(this));
 
-        if (
-            lockedstakes.length == 0 ||
-            lockedstakes[lockedstakes.length - 1].ending_timestamp == 0
-        ) {
-            IFraxFarmERC20(fraxPool).stakeLocked(fraxLpAmount, duration);
-        } else {
-            bytes32 kek_id = lockedstakes[lockedstakes.length - 1].kek_id;
+        if (lockedstakes.length == 1) {
+            bytes32 kek_id = lockedstakes[0].kek_id;
             IFraxFarmERC20(fraxPool).lockAdditional(kek_id, fraxLpAmount);
             IFraxFarmERC20(fraxPool).lockLonger(
                 kek_id,
                 block.timestamp + duration
             ); // lock_time_min = 594000 in frax pool
+        } else if (lockedstakes.length == 0) {
+            IFraxFarmERC20(fraxPool).stakeLocked(fraxLpAmount, duration);
         }
     }
 
@@ -205,7 +205,7 @@ contract CurveFraxConvexStrategyV2 is
             lockedstakes.length != 0,
             "CurveFraxConvexStrategyV2: !invested"
         );
-        bytes32 kek_id = lockedstakes[lockedstakes.length - 1].kek_id;
+        bytes32 kek_id = lockedstakes[0].kek_id;
         IFraxFarmERC20(_fraxpool).lockLonger(kek_id, newEndingTs);
     }
 
@@ -292,14 +292,14 @@ contract CurveFraxConvexStrategyV2 is
 
         // step 1 - unlock wrapped lp tokens
         IFraxFarmERC20(_fraxPool).withdrawLocked(
-            lockedstakes[lockedstakes.length - 1].kek_id,
+            lockedstakes[0].kek_id,
             address(this)
         );
 
         // step 2 - unwrap lp tokens
         address stakeToken = IFraxFarmERC20(_fraxPool).stakingToken();
-        uint256 lpAmountToWithdraw = (lockedstakes[lockedstakes.length - 1]
-            .liquidity * _unwindPercent) / 10000;
+        uint256 lpAmountToWithdraw = (lockedstakes[0].liquidity *
+            _unwindPercent) / 10000;
 
         if (lpAmountToWithdraw == 0) return 0;
 
@@ -311,6 +311,7 @@ contract CurveFraxConvexStrategyV2 is
                 address(this)
             );
             if (lpAmountToLock != 0) {
+                // console.log(lpAmountToLock);
                 _lockInFraxPool(_fraxPool, lpAmountToLock, _nextDuration);
             }
         }
@@ -324,6 +325,7 @@ contract CurveFraxConvexStrategyV2 is
     ) internal {
         address stakeToken = IFraxFarmERC20(_fraxPool).stakingToken();
         IERC20(stakeToken).safeIncreaseAllowance(_fraxPool, _amount);
+
         IFraxFarmERC20(_fraxPool).stakeLocked(_amount, _duration);
     }
 

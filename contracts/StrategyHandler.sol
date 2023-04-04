@@ -537,8 +537,8 @@ contract StrategyHandler is
         assetIdToAssetInfo[_assetId].ibAlluo = _ibAlluo;
         for (uint256 i; i < _chainIds.length; i++) {
             assetIdToAssetInfo[_assetId].chainIdToPrimaryToken[
-                    _chainIds[i]
-                ] = _chainIdToPrimaryToken[i];
+                _chainIds[i]
+            ] = _chainIdToPrimaryToken[i];
         }
     }
 

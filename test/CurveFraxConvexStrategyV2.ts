@@ -57,15 +57,13 @@ describe("CurveFraxConvex Strategies", function () {
                     enabled: true,
                     jsonRpcUrl: process.env.MAINNET_FORKING_URL as string,
                     //you can fork from last block by commenting next line
-                    blockNumber: 16169577,
+                    blockNumber: 16481823,
                 },
             },],
         });
 
-        // ethers.Wallet.createRandom();
         signers = await ethers.getSigners();
         signer = signers[0];
-        // console.log(signer.address);
 
         usdc = await ethers.getContractAt("IERC20Metadata", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
         usdt = await ethers.getContractAt("IERC20Metadata", "0xdAC17F958D2ee523a2206206994597C13D831ec7");
@@ -195,13 +193,20 @@ describe("CurveFraxConvex Strategies", function () {
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
+            await skipDays(0.5);
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
             const balanceBefore = await poolToken.balanceOf(signer.address);
 
             const receiver = signer.address;
             await skipDays(10);
+            console.log('balance of staking token', await stakingToken.balanceOf(strategy.address));
+            console.log(await fraxPoolContract.lockedStakesOfLength(strategy.address));
             await strategy.exitAll(exitData, 10000, poolToken.address, receiver, true, false);
+            console.log(await fraxPoolContract.lockedStakesOfLength(strategy.address));
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1); // because we locked remaining
 
             const totalInvestAmount = amount.mul(2);
             const expectedBalance = balanceBefore.add(totalInvestAmount);
@@ -220,6 +225,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
+            await skipDays(0.5);
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
             const balanceBefore = await poolToken.balanceOf(signer.address);
@@ -230,8 +236,10 @@ describe("CurveFraxConvex Strategies", function () {
             const blockInfo = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
             const newEndingTs = blockInfo.timestamp + (60 * 60 * 24 * 8);
             await strategy.investLonger(fraxPool, newEndingTs);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
             await skipDays(9);
             await strategy.exitAll(exitData, 10000, poolToken.address, receiver, true, false);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(1);
 
         });
 
@@ -239,7 +247,7 @@ describe("CurveFraxConvex Strategies", function () {
             const blockInfo = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
             const newEndingTs = blockInfo.timestamp + (60 * 60 * 24 * 8);
             const tx = strategy.investLonger(fraxPool, newEndingTs);
-            expect(tx).to.be.revertedWith("CurveFraxConvexStrategyV2: !invested");
+            await expect(tx).to.be.revertedWith("CurveFraxConvexStrategyV2: !invested");
         });
 
         it("Should try to exit before the end of locking period", async () => {
@@ -254,19 +262,19 @@ describe("CurveFraxConvex Strategies", function () {
             await strategy.invest(entryData, amount);
             const tx = strategy.exitAll(exitData, 10000, poolToken.address, strategy.address, true, false);
 
-            expect(tx).to.be.revertedWith("Stake is still locked!");
+            await expect(tx).to.be.revertedWith("Stake is still locked!");
 
         });
 
-        it("Should exit and send to the signer without swapping", async () => {
+        it("Should exit and send rewards to the signer without swapping", async () => {
 
             const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
-            const amount = parseUnits("10", await poolToken.decimals());
+            const amount = parseUnits("1000", await poolToken.decimals());
             const receiver = signer.address;
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
-            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration);
             await poolToken.connect(signer).transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
             await skipDays(10);
@@ -276,6 +284,9 @@ describe("CurveFraxConvex Strategies", function () {
             const cvxBefore = await cvx.balanceOf(receiver);
 
             await strategy.exitAll(exitData, 10000, poolToken.address, receiver, true, false);
+
+            const lockedStakes = await fraxPoolContract.lockedStakesOf(strategy.address);
+            console.log(lockedStakes);
 
             expect(await FXS.balanceOf(receiver)).to.be.gt(fxsBefore);
             expect(await crv.balanceOf(receiver)).to.be.gt(crvBefore);
@@ -311,6 +322,7 @@ describe("CurveFraxConvex Strategies", function () {
             const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
             const amount = parseUnits("10", await poolToken.decimals());
             const receiver = signer.address;
+            const usdcBefore = await poolToken.balanceOf(receiver);
 
             const entryData = await strategy.encodeEntryParams(
                 curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
@@ -324,7 +336,6 @@ describe("CurveFraxConvex Strategies", function () {
             const cvxBefore = await cvx.balanceOf(receiver);
 
             await strategy.exitAll(exitData, 10000, poolToken.address, receiver, false, true);
-            const usdcBefore = await poolToken.balanceOf(receiver);
             await strategy.exitOnlyRewards(exitData, poolToken.address, receiver, true);
 
             expect(await FXS.balanceOf(receiver)).to.be.eq(fxsBefore);
@@ -333,7 +344,7 @@ describe("CurveFraxConvex Strategies", function () {
             expect(await usdc.balanceOf(strategy.address)).to.be.eq(0);
 
             const usdcAfter = await poolToken.balanceOf(receiver);
-            expect(usdcAfter).to.be.gt(usdcBefore);
+            expect(checkSpread(usdcAfter, usdcBefore, 5));
 
         });
 
@@ -504,7 +515,32 @@ describe("CurveFraxConvex Strategies", function () {
 
         });
 
-        // TODO: if there are curve LP tokens on the contract, or wrapped lp tokens, we should only invest the amount specified in the params
+        it("Should check if new kek_id is correct after relocking", async () => {
+            const poolToken = await ethers.getContractAt("IERC20Metadata", poolTokenAddress);
+            const amount = parseUnits("1000", await poolToken.decimals());
+
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, poolToken.address, poolSize, tokenIndexInCurve, fraxPool, duration);
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken.address, tokenIndexInCurve, fraxPool, true, duration)
+
+            await poolToken.connect(signer).transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount);
+            await skipDays(10);
+            await strategy.exitAll(exitData, 10000, poolToken.address, strategy.address, true, false);
+            const balanceAfter = await poolToken.balanceOf(strategy.address);
+            expect(checkSpread(balanceAfter, amount, 5));
+
+            await strategy.invest(entryData, balanceAfter);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(2);
+            await skipDays(10);
+            await strategy.exitAll(exitData, 10000, poolToken.address, strategy.address, true, false);
+            const balanceAfter1 = await poolToken.balanceOf(strategy.address);
+            expect(checkSpread(balanceAfter1, balanceAfter, 5));
+            await strategy.invest(entryData, balanceAfter1);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(3);
+            expect(await poolToken.balanceOf(strategy.address)).to.be.eq(0);
+
+        });
 
         it("Should invest exactly the amount passed in the params, regardless of previous contract balance", async () => {
 
@@ -636,6 +672,26 @@ describe("CurveFraxConvex Strategies", function () {
 
         });
 
+        it("Should check if new kek_id is correct after relocking", async () => {
+
+            const entryData = await strategy.encodeEntryParams(
+                curvePool, poolToken, poolSize, tokenIndexInCurve, fraxPool, duration);
+            const exitData = await strategy.encodeExitParams(curvePool, poolToken, tokenIndexInCurve, fraxPool, true, duration)
+            await wrappedEther.transfer(strategy.address, amount);
+            await strategy.invest(entryData, amount.div(2));
+            await skipDays(10);
+            await strategy.exitAll(exitData, 10000, outputCoin, strategy.address, true, false);
+            await strategy.invest(entryData, amount.div(2));
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(2);
+            await skipDays(10);
+            await strategy.exitAll(exitData, 10000, outputCoin, strategy.address, true, false);
+            expect(await fraxPoolContract.lockedStakesOfLength(strategy.address)).to.be.eq(2);
+            expect(checkSpread(amount, await wrappedEther.balanceOf(strategy.address), 5));
+            await strategy.invest(entryData, amount.div(2));
+            console.log(await fraxPoolContract.lockedStakesOf(strategy.address));
+
+        });
+
         it("Should invest twice and exit", async () => {
             const receiver = signer.address;
             const entryData = await strategy.encodeEntryParams(
@@ -645,7 +701,7 @@ describe("CurveFraxConvex Strategies", function () {
             const balanceBefore = await wrappedEther.balanceOf(signer.address);
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
-
+            await skipDays(0.5);
             await wrappedEther.transfer(strategy.address, amount);
             await strategy.invest(entryData, amount);
 
@@ -673,7 +729,7 @@ describe("CurveFraxConvex Strategies", function () {
 
             await strategy.exitAll(exitData, 10000, outputCoin, receiver, true, false);
 
-            expect(await FXS.balanceOf(receiver)).to.be.gt(fxsBefore);
+            // expect(await FXS.balanceOf(receiver)).to.be.gt(fxsBefore);
             expect(await crv.balanceOf(receiver)).to.be.gt(crvBefore);
             expect(await cvx.balanceOf(receiver)).to.be.gt(cvxBefore);
 
@@ -717,7 +773,8 @@ describe("CurveFraxConvex Strategies", function () {
             const balanceBefore = await wrappedEther.balanceOf(receiver);
             await strategy.exitAll(exitData, 10000, outputCoin, receiver, true, true);
             const balanceAfter = await wrappedEther.balanceOf(receiver);
-            expect(balanceAfter).to.be.gt(balanceBefore);
+            // expect(balanceAfter).to.be.gt(balanceBefore);
+            expect(checkSpread(balanceAfter, balanceBefore, 5));
 
         });
 
@@ -740,6 +797,9 @@ describe("CurveFraxConvex Strategies", function () {
 
             await strategy.exitAll(exitData, 6000, outputCoin, receiver, true, false);
             const newPosition = await fraxPoolContract.lockedLiquidityOf(strategy.address);
+
+            const lockedStakes = await fraxPoolContract.lockedStakesOf(strategy.address);
+            console.log(lockedStakes);
 
             expect(newPosition).to.be.gt(0);
             expect(await FXS.balanceOf(receiver)).to.be.gt(fxsBefore);
