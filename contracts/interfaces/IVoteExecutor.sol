@@ -144,6 +144,16 @@ interface IVoteExecutorMaster {
 
     function setMinSigns(uint256 _minSigns) external;
 
+    function setCrossChainInfo(
+        address _anyCallAddress,
+        address _anyCallExecutor,
+        address _nextChainExecutor,
+        address _previousChainExecutor,
+        uint256 _currentChain,
+        uint256 _nextChain,
+        uint256 _previousChain
+    ) external;
+
     function setNextChainExecutor(
         address _newAddress,
         uint256 chainNumber

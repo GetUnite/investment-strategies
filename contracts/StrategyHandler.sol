@@ -189,8 +189,10 @@ contract StrategyHandler is
                         actualAmount -
                         totalRewards +
                         IERC20Upgradeable(primaryToken).balanceOf(executor) *
-                        (10 ** 18 -
-                            IERC20MetadataUpgradeable(primaryToken).decimals());
+                        10 **
+                            (18 -
+                                IERC20MetadataUpgradeable(primaryToken)
+                                    .decimals());
                     IERC20Upgradeable(primaryToken).transfer(
                         booster,
                         totalRewardsBalance
@@ -209,8 +211,9 @@ contract StrategyHandler is
                 uint256 executorBalanceBefore18 = IERC20Upgradeable(
                     primaryToken
                 ).balanceOf(executor) *
-                    (10 ** 18 -
-                        IERC20MetadataUpgradeable(primaryToken).decimals());
+                    10 **
+                        (18 -
+                            IERC20MetadataUpgradeable(primaryToken).decimals());
 
                 IERC20Upgradeable(primaryToken).transfer(
                     executor,

@@ -11,6 +11,7 @@ import 'hardhat-contract-sizer'
 import './tasks'
 import '@openzeppelin/hardhat-upgrades';
 import "@nomiclabs/hardhat-solhint";
+import "hardhat-tracer";
 
 dotenv.config();
 
