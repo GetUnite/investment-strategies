@@ -179,8 +179,7 @@ See the [open issues](https://github.com/GetAlluo/alluo-strategies/issues) for a
 
 Contributions are what make the open source and DeFi communities such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
+If you have a suggestion that would make this better, please review the [contribution guide](CONTRIBUTING.md), fork the repo, and create a pull request. You can also open an issue with the tag "enhancement".
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -190,7 +189,7 @@ Don't forget to give the project a star! Thanks again!
 
 ### Bug bounties
 
-If you notice any vulnerabilities, bugs, or even efficiency improvements please checkout our Bug Bounty program on [Gitcoin](www.google.com)
+If you notice any vulnerabilities, bugs, or efficiency improvements, please coordinate through the active bounty or disclosure channel before sharing sensitive details publicly.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
