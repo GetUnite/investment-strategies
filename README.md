@@ -177,6 +177,9 @@ See the [open issues](https://github.com/GetAlluo/alluo-strategies/issues) for a
 <!-- CONTRIBUTING -->
 ## Contributing
 
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, checks and pull request
+guidance.
+
 Contributions are what make the open source and DeFi communities such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
